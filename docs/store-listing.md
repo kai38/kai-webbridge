@@ -30,7 +30,7 @@ What it can do:
 - Take screenshots and save pages as PDFs to local files.
 - Run JavaScript and raw Chrome DevTools Protocol commands when the local agent asks.
 - Capture network requests for a tab while capture is enabled.
-- Resume a task after a daemon restart; a status popup shows the connected browser and
+- Resume a task after a daemon restart; a status side panel shows the connected browser and
   daemon state.
 
 Privacy:
@@ -70,6 +70,8 @@ behalf of that local agent.
   tab-group bindings used to restore a task after a daemon restart.
 - **alarms:** Reconnect the extension's WebSocket after Chromium suspends the extension
   service worker.
+- **sidePanel:** Show the connection/status panel in Chrome's side panel. It stays visible
+  across tabs and does not read page content.
 
 No host permissions are requested. Navigation, debugging, and tab access use the
 permissions above only.
@@ -97,7 +99,7 @@ and runs on their own machine; there is no developer-operated server.
 2. Run `npx -y kai-webbridge setup` in a terminal. This starts the daemon on
    `127.0.0.1:10087` and copies the extension to `~/.kai-webbridge/extension`.
 3. Load that folder with "Load unpacked" in `chrome://extensions`.
-4. Open the extension popup and Options page. Both should show "connected" and the browser name.
+4. Open the extension side panel (click the toolbar icon or press Ctrl+Shift+Y) and the Options page. Both should show "connected" and the browser name.
 5. Open `https://example.com`, then from a terminal run:
 
    ```bash
@@ -124,7 +126,7 @@ Chromium restriction, not a test failure.
 ## Assets checklist
 
 - [x] 128×128 store icon: `extension/icons/128.png`
-- [x] Extension ZIP: `dist/kai-webbridge-extension-0.1.1.zip`
+- [x] Extension ZIP: `dist/kai-webbridge-extension-0.1.2.zip`
 - [x] At least one 1280×800 screenshot: `docs/store/screenshots/options-1280x800.png`
 - [x] 440×280 small promo tile: `docs/store/promo-440x280.png`
 - [x] Privacy policy URL

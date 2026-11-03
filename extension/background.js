@@ -6,6 +6,13 @@ import { runTool } from "./lib/tools.js";
 const connection = new Connection({ onToolCall: runTool });
 let booting = null;
 
+function configureSidePanel() {
+  if (!chrome.sidePanel?.setPanelBehavior) return;
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => {
+    console.warn("[kai-webbridge] could not configure side panel:", error);
+  });
+}
+
 function boot() {
   if (!booting) {
     booting = connection.start().catch((error) => {
@@ -17,11 +24,13 @@ function boot() {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
+  configureSidePanel();
   void boot();
   void chrome.alarms.create("kai-webbridge-reconnect", { periodInMinutes: 0.5 });
 });
 
 chrome.runtime.onStartup.addListener(() => {
+  configureSidePanel();
   void boot();
 });
 
@@ -72,4 +81,5 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true;
 });
 
+configureSidePanel();
 void boot();

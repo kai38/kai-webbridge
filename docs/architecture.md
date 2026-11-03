@@ -95,7 +95,7 @@ The extension is a module service worker with no build step. `background.js` sta
 | `lib/network.js` | Per-tab `Network.*` capture buffer and body retrieval. |
 | `lib/tools.js` | The 21 tool implementations. |
 | `lib/browser-tabs.js` | URL matching/ranking for borrowing already-open tabs. |
-| `popup.html/js/css` | Connection status popup (browser, versions, server, reconnect/options). |
+| `sidepanel.html/js/css` | Persistent side panel: status, browser, versions, server, reconnect/options. |
 | `options.html/js` | Server URL, token, auto-connect, live status. |
 
 ### CDP session model

@@ -59,6 +59,15 @@ document.getElementById("save").addEventListener("click", async () => {
   if (response?.ok) render(response.status);
 });
 
+document.getElementById("openPanel").addEventListener("click", async () => {
+  try {
+    const opening = chrome.sidePanel.open({});
+    await opening;
+  } catch (error) {
+    savedEl.textContent = `could not open side panel: ${String(error?.message ?? error)}`;
+  }
+});
+
 document.getElementById("reconnect").addEventListener("click", async () => {
   const response = await send({ type: "kai-reconnect" });
   if (response?.ok) render(response.status);
