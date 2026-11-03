@@ -1,6 +1,7 @@
 # Kai WebBridge
 
 [![CI](https://github.com/kai38/kai-webbridge/actions/workflows/ci.yml/badge.svg)](https://github.com/kai38/kai-webbridge/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/kai-webbridge.svg)](https://www.npmjs.com/package/kai-webbridge)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Open-source browser bridge for local AI agents.** Let an agent drive your real Chrome — your tabs, your cookies, your logins — through a small local daemon and a Manifest V3 extension.
@@ -21,22 +22,20 @@ Chrome extension (MV3)  ──  chrome.debugger → CDP → your real tab
 
 Requirements: **Node.js 20+**, **Chrome/Chromium 120+**.
 
-### One command (recommended)
+### npm (recommended)
 
 ```bash
-npx -y https://github.com/kai38/kai-webbridge/releases/latest/download/kai-webbridge.tgz setup
+npx -y kai-webbridge setup
 ```
 
-`npx` downloads the release tarball, runs the setup, and leaves the daemon and extension behind. No global install.
-
-### Global install
+Or install the CLI globally:
 
 ```bash
-npm install -g https://github.com/kai38/kai-webbridge/releases/latest/download/kai-webbridge.tgz
+npm install -g kai-webbridge
 kai-webbridge setup
 ```
 
-Use this if you want `kai-webbridge` on your PATH. Update later by repeating the install command and running `kai-webbridge setup`.
+`setup` downloads nothing else: the npm package already contains the extension and skill.
 
 ### From a checkout
 
@@ -47,7 +46,7 @@ npm install
 node bin/kai-webbridge.js setup
 ```
 
-The package is not published to npm yet; the release tarball is the supported install path.
+Release tarballs are also attached to every GitHub release for offline installs.
 
 ### What `setup` does
 
