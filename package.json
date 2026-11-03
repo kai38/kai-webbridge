@@ -1,6 +1,6 @@
 {
   "name": "kai-webbridge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Open-source browser bridge: let local AI agents drive the user's real Chrome through a small local daemon and a Manifest V3 extension.",
   "type": "module",
   "license": "MIT",

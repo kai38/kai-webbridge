@@ -124,7 +124,7 @@ Chromium restriction, not a test failure.
 ## Assets checklist
 
 - [x] 128×128 store icon: `extension/icons/128.png`
-- [x] Extension ZIP: `dist/kai-webbridge-extension-0.1.0.zip`
+- [x] Extension ZIP: `dist/kai-webbridge-extension-0.1.1.zip`
 - [x] At least one 1280×800 screenshot: `docs/store/screenshots/options-1280x800.png`
 - [x] 440×280 small promo tile: `docs/store/promo-440x280.png`
 - [x] Privacy policy URL

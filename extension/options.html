@@ -36,12 +36,24 @@
         max-width: 640px;
         margin: 0 auto;
       }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+      }
+      .brand-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        flex: none;
+      }
       h1 {
         font-size: 22px;
         margin: 0 0 4px;
       }
       p.sub {
-        margin: 0 0 24px;
+        margin: 0;
         color: var(--muted);
       }
       .card {
@@ -124,8 +136,13 @@
   </head>
   <body>
     <main>
-      <h1>Kai WebBridge</h1>
-      <p class="sub">Drive this browser from a local agent. No telemetry, no cloud, localhost only.</p>
+      <header class="brand">
+        <img src="icons/48.png" alt="" width="48" height="48" class="brand-icon" />
+        <div>
+          <h1>Kai WebBridge</h1>
+          <p class="sub">Drive this browser from a local agent. No telemetry, no cloud, localhost only.</p>
+        </div>
+      </header>
 
       <section class="card">
         <div><span id="dot" class="dot"></span><strong id="state">checking…</strong></div>
