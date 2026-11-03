@@ -221,7 +221,7 @@ test("end-to-end: real Chrome, extension, snapshot, click, fill, screenshot, PDF
   assert.match(snapshot.tree_text, /button "Greet"/);
   assert.match(snapshot.tree_text, /textbox "Name"/);
   const buttonRef = /button "Greet" \[ref=(e\d+)\]/.exec(snapshot.tree_text)?.[1];
-  const inputRef = /textbox "Name" \[ref=(e\d+)\]/.exec(snapshot.tree_text)?.[1];
+  const inputRef = /textbox "Name"(?: value="[^"]*")? \[ref=(e\d+)\]/.exec(snapshot.tree_text)?.[1];
   assert.ok(buttonRef && inputRef, "snapshot should expose refs");
 
   await ok("fill", { selector: `@${inputRef}`, value: "Kai" });
