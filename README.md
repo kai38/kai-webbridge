@@ -35,7 +35,7 @@ npm install -g kai-webbridge
 kai-webbridge setup
 ```
 
-`setup` downloads nothing else: the npm package already contains the extension and skill.
+`setup` downloads nothing else: the npm package already contains the extension and skill. If you use `npx` without installing globally, prefix later commands with `npx -y kai-webbridge` (for example `npx -y kai-webbridge status`).
 
 ### From a checkout
 
