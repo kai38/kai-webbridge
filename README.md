@@ -4,7 +4,7 @@
 [![npm](https://img.shields.io/npm/v/kai-webbridge.svg)](https://www.npmjs.com/package/kai-webbridge)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Open-source browser bridge for local AI agents.** Let an agent drive your real Chrome — your tabs, your cookies, your logins — through a small local daemon and a Manifest V3 extension.
+**Open-source browser bridge for local AI agents.** Let an agent drive your real Chromium browser — your tabs, your cookies, your logins — through a small local daemon and a Manifest V3 extension.
 
 No cloud service, no headless browser, no telemetry. The agent talks HTTP to `127.0.0.1`; the extension executes commands with `chrome.debugger`.
 
@@ -20,7 +20,7 @@ Chrome extension (MV3)  ──  chrome.debugger → CDP → your real tab
 
 ## Install
 
-Requirements: **Node.js 20+**, **Chrome/Chromium 120+**.
+Requirements: **Node.js 20+**, **a Chromium-based browser 120+** (Chrome, Edge, Brave, Opera, or Vivaldi).
 
 ### npm (recommended)
 
@@ -59,9 +59,14 @@ Flags: `--no-start` (configure only), `--no-skill` (skip agent runtimes), `--por
 
 ### Load the extension (one manual step)
 
-Chrome only allows unpacked extensions to be loaded from its own UI:
+The browser only allows unpacked extensions to be loaded from its own UI:
 
-1. Open `chrome://extensions`.
+1. Open the extension manager in the browser where you want the bridge:
+   - Chrome: `chrome://extensions`
+   - Edge: `edge://extensions`
+   - Brave: `brave://extensions`
+   - Opera: `opera://extensions`
+   - Vivaldi: `vivaldi://extensions`
 2. Turn on **Developer mode**.
 3. Click **Load unpacked** and select `~/.kai-webbridge/extension` (the exact path is printed by `setup`).
 
@@ -71,7 +76,7 @@ Chrome only allows unpacked extensions to be loaded from its own UI:
 curl -s http://127.0.0.1:10087/status
 ```
 
-`extension_connected: true` means the daemon and browser are talking. If the CLI is installed globally, `kai-webbridge status` prints the same JSON. If the extension shows an error, open its **Options** page and confirm the WebSocket URL is `ws://127.0.0.1:10087/ws` (or the port you configured).
+`extension_connected: true` means the daemon and browser are talking. `extension_browser` names the browser that holds the extension (for example Chrome 153.0.8010.36). If the CLI is installed globally, `kai-webbridge status` prints the same JSON. If the extension shows an error, open its **Options** page and confirm the WebSocket URL is `ws://127.0.0.1:10087/ws` (or the port you configured).
 
 To update, run setup again (`npx -y kai-webbridge@latest setup`, or `npm install -g kai-webbridge && kai-webbridge setup`), then reload the extension in `chrome://extensions`.
 
@@ -189,7 +194,7 @@ More: [architecture](docs/architecture.md) · [protocol](docs/protocol.md) · [s
 - One browser per daemon. A second extension connection is refused with WebSocket close code `4409`.
 - No multi-agent isolation: sessions are names, not security boundaries.
 - HTTP/HTTPS only; `file://` and `chrome://` navigation is refused.
-- Chrome blocks extensions from scripting its Web Store domains (`chrome.google.com/webstore`, `chromewebstore.google.com`). `navigate` can open and group those tabs, but they cannot be snapshotted, clicked, or typed into.
+- Chromium browsers block extensions from scripting their Web Store domains (`chrome.google.com/webstore`, `chromewebstore.google.com`). `navigate` can open and group those tabs, but they cannot be snapshotted, clicked, or typed into.
 - Cross-platform code exists, but automated e2e is currently verified on Linux.
 
 ## Independence and trademarks

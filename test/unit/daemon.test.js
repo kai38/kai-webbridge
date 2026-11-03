@@ -138,7 +138,14 @@ test("commands round-trip through a fake extension and inject session state", as
   t.after(() => daemon.stop());
 
   const ws = await wsConnect(base);
-  await hello(ws);
+  await hello(ws, {
+    extensionId: "a".repeat(32),
+    browser: { name: "Brave", version: "1.68.1", platform: "linux", arch: "x64", engine: "chromium" },
+  });
+  const status = await fetch(`${base}/status`).then((r) => r.json());
+  assert.equal(status.extension_id, "a".repeat(32));
+  assert.equal(status.extension_browser.name, "Brave");
+  assert.equal(status.extension_browser.arch, "x64");
   const seen = [];
   ws.on("message", (raw) => {
     const message = JSON.parse(raw.toString());

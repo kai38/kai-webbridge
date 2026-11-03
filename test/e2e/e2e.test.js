@@ -160,6 +160,10 @@ test("end-to-end: real Chrome, extension, snapshot, click, fill, screenshot, PDF
     { timeoutMs: 30000, intervalMs: 300 },
   );
 
+  const initialStatus = await fetch(`${BASE}/status`).then((r) => r.json());
+  assert.match(initialStatus.extension_browser?.name ?? "", /Chrome/);
+  assert.ok(initialStatus.extension_browser?.version);
+
   const navigated = await ok("navigate", {
     url: `http://127.0.0.1:${pagePort}/`,
     newTab: true,
@@ -243,4 +247,5 @@ test("end-to-end: real Chrome, extension, snapshot, click, fill, screenshot, PDF
 
   const status = await fetch(`${BASE}/status`).then((r) => r.json());
   assert.equal(status.extension_connected, true);
+  assert.match(status.extension_browser?.name ?? "", /Chrome/);
 });

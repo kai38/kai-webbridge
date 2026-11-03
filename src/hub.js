@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { WebSocket, WebSocketServer } from "ws";
 import { BridgeError } from "./protocol.js";
+import { browserLabel, mergeBrowser, parseUserAgent } from "./browser.js";
 import { PROTOCOL_VERSION } from "./version.js";
 
 const MAX_PAYLOAD_BYTES = 10 * 1024 * 1024;
@@ -40,8 +41,9 @@ export class Hub extends EventEmitter {
 
   attach(ws, req) {
     if (this.client && this.client.ws.readyState === WebSocket.OPEN) {
-      this.logger?.warn("refusing a second extension connection (slot busy)");
-      ws.close(4409, "another browser is already connected");
+      const holder = browserLabel(this.client.browser);
+      this.logger?.warn(`refusing a second extension connection; ${holder} already holds the slot`);
+      ws.close(4409, `another browser is already connected (${holder})`.slice(0, 120));
       return;
     }
     if (this.client) {
@@ -55,6 +57,8 @@ export class Hub extends EventEmitter {
       url: req?.url ?? "",
       ready: false,
       extensionVersion: null,
+      extensionId: null,
+      browser: parseUserAgent(req?.headers?.["user-agent"]),
       connectedAt: Date.now(),
       lastPong: Date.now(),
       heartbeat: null,
@@ -118,9 +122,14 @@ export class Hub extends EventEmitter {
         }
         client.ready = true;
         client.extensionVersion = String(hello.extensionVersion ?? "unknown");
+        client.browser = mergeBrowser(client.browser, hello.browser);
+        client.extensionId =
+          typeof hello.extensionId === "string" && /^[a-p]{32}$/.test(hello.extensionId)
+            ? hello.extensionId
+            : null;
         client.lastPong = Date.now();
         clearTimeout(client.helloTimer);
-        this.logger?.info(`extension hello v${client.extensionVersion}`);
+        this.logger?.info(`extension hello v${client.extensionVersion} from ${browserLabel(client.browser)}`);
         this.#send(client, {
           type: "hello_ack",
           payload: { daemonVersion: this.version, protocol: PROTOCOL_VERSION },
@@ -252,6 +261,8 @@ export class Hub extends EventEmitter {
     return {
       connected: Boolean(client?.ready && client.ws.readyState === WebSocket.OPEN),
       extension_version: client?.extensionVersion ?? null,
+      extension_id: client?.extensionId ?? null,
+      browser: client?.browser ?? null,
       connected_at: client ? new Date(client.connectedAt).toISOString() : null,
     };
   }

@@ -20,9 +20,9 @@ Check that the daemon and extension are alive:
 curl -s http://127.0.0.1:10087/status
 ```
 
-- `extension_connected: true` — ready.
+- `extension_connected: true` — ready. `extension_browser` names the browser holding the extension (Chrome, Edge, Brave, Opera, or Vivaldi).
 - Connection refused — run `kai-webbridge start` and retry.
-- `extension_connected: false` — tell the user to open Chrome and make sure the Kai WebBridge extension is loaded and connected (its options page shows the state). Do not try to install the extension for them.
+- `extension_connected: false` — tell the user to open the Chromium-based browser that has the extension loaded and check its options page. Do not try to install the extension for them.
 
 ## Call format
 

@@ -321,10 +321,13 @@ async function setup(config, flags) {
     return;
   }
   process.stdout.write(
-    "One manual step remains (Chrome only allows extension loading from its UI):\n" +
-      "  1. Open chrome://extensions\n" +
-      "  2. Turn on Developer mode\n" +
-      '  3. Click "Load unpacked" and select the Extension folder above\n\n' +
+    "One manual step remains (browsers only allow extension loading from their UI):\n" +
+      "  Chrome:  chrome://extensions\n" +
+      "  Edge:    edge://extensions\n" +
+      "  Brave:   brave://extensions\n" +
+      "  Opera:   opera://extensions\n" +
+      "  Vivaldi: vivaldi://extensions\n" +
+      "  Turn on Developer mode, click \"Load unpacked\", and select the Extension folder above.\n\n" +
       "Then verify with: kai-webbridge status\n",
   );
 }

@@ -104,6 +104,8 @@ export class Daemon {
       uptime_seconds: this.startedAt ? Math.floor((Date.now() - this.startedAt) / 1000) : 0,
       extension_connected: extension.connected,
       extension_version: extension.extension_version,
+      extension_id: extension.extension_id,
+      extension_browser: extension.browser,
       extension_connected_at: extension.connected_at,
       sessions: this.sessions.summary(),
       output_dir: this.config.outputDir,

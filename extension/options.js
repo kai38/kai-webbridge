@@ -16,6 +16,9 @@ function render(status) {
     `state: ${status?.state ?? "unknown"}`,
     `server: ${status?.serverUrl ?? "—"}`,
     `extension: v${status?.extensionVersion ?? "?"}`,
+    status?.browser?.name
+      ? `browser: ${status.browser.name}${status.browser.version ? ` ${status.browser.version}` : ""} (${status.browser.platform ?? "?"})`
+      : null,
     status?.connectedAt ? `connected at: ${status.connectedAt}` : null,
     status?.lastError ? `error: ${status.lastError}` : null,
   ].filter(Boolean);

@@ -23,6 +23,15 @@ Read-only, no auth required. Example:
   "uptime_seconds": 42,
   "extension_connected": true,
   "extension_version": "0.1.0",
+  "extension_id": "jnpmdcbhngphmloogomhigkkmgebjacd",
+  "extension_browser": {
+    "name": "Chrome",
+    "version": "153.0.8010.36",
+    "platform": "linux",
+    "arch": "x64",
+    "engine": "chromium",
+    "headless": false
+  },
   "extension_connected_at": "2026-11-03T16:00:00.000Z",
   "sessions": [
     {"name": "research", "tabs": 3, "current_tab": 123456, "borrowed": false,
@@ -180,14 +189,21 @@ the handshake within 5 s is closed with `4408`.
 
 ```json
 // extension → daemon
-{"type":"hello","payload":{"extensionVersion":"0.1.0","protocol":1,"client":"kai-webbridge"}}
+{"type":"hello","payload":{
+  "extensionVersion":"0.1.0",
+  "protocol":1,
+  "client":"kai-webbridge",
+  "extensionId":"jnpmdcbhngphmloogomhigkkmgebjacd",
+  "browser":{"name":"Chrome","version":"153.0.8010.36","platform":"linux","arch":"x64","engine":"chromium"}
+}}
 
 // daemon → extension
 {"type":"hello_ack","payload":{"daemonVersion":"0.1.0","protocol":1}}
 ```
 
 A hello without `protocol: 1` and `client: "kai-webbridge"` is rejected with close code
-`4400`. This keeps other browser extensions and other WebBridge implementations from
+`4400`. The `browser` block is optional; when it is absent the daemon derives the
+browser from the WebSocket handshake `User-Agent`. This keeps other browser extensions and other WebBridge implementations from
 attaching to this daemon.
 
 ### Work

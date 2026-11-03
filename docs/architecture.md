@@ -95,6 +95,9 @@ The extension is a module service worker with no build step. `background.js` sta
 
 ### CDP session model
 
+- The extension detects its browser and platform at startup and includes them in the
+  WebSocket `hello`. The daemon also derives a fallback from the handshake
+  `User-Agent`, so `/status` identifies the browser even when the extension is older.
 - One `chrome.debugger.attach(tabId, "1.3")` per tab, then `Page.enable` and `DOM.enable`.
 - Commands to the same tab are serialized by a promise chain (`enqueue`).
 - Every CDP command has a timeout (60 s default; screenshots 30 s; PDFs 60 s).

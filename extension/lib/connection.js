@@ -1,4 +1,5 @@
 import { getSettings } from "./settings.js";
+import { detectBrowser } from "./browser.js";
 
 const RETRY_DELAYS = [1000, 3000, 10000, 20000];
 const STALE_AFTER_MS = 90000;
@@ -23,10 +24,12 @@ export class Connection {
     this.daemonVersion = null;
     this.lastError = null;
     this.connectedAt = null;
+    this.browser = null;
     this.opening = false;
   }
 
   async start() {
+    this.browser = await detectBrowser().catch(() => null);
     this.settings = await getSettingsSafe();
     await this.reconcile(true);
   }
@@ -99,6 +102,8 @@ export class Connection {
           extensionVersion: chrome.runtime.getManifest().version,
           protocol: 1,
           client: "kai-webbridge",
+          extensionId: chrome.runtime.id,
+          ...(this.browser ? { browser: this.browser } : {}),
         },
       });
       this.clearPing();
@@ -251,6 +256,7 @@ export class Connection {
       serverUrl: this.settings?.serverUrl ?? null,
       daemonVersion: this.daemonVersion,
       extensionVersion: chrome.runtime.getManifest().version,
+      browser: this.browser,
       connectedAt: this.connectedAt,
       lastError: this.lastError,
     };
