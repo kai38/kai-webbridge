@@ -29,17 +29,49 @@ function sessionOf(args) {
   return typeof args._session === "string" && args._session ? args._session : "default";
 }
 
-async function captureFullPage(tabId) {
-  const base = { format: "png", fromSurface: true };
-  try {
-    const shot = await cdp.send(tabId, "Page.captureScreenshot", { ...base, captureBeyondViewport: true }, { timeoutMs: 30000 });
-    if (!shot?.data) throw new Error("no image data");
-    return { format: "png", mimeType: "image/png", data: shot.data, full_page: true };
-  } catch (error) {
-    const shot = await cdp.send(tabId, "Page.captureScreenshot", { ...base, captureBeyondViewport: false }, { timeoutMs: 30000 });
-    if (!shot?.data) throw error;
-    return { format: "png", mimeType: "image/png", data: shot.data, full_page: false };
+async function withActiveTab(tabId, fn) {
+  const target = await chrome.tabs.get(tabId).catch(() => null);
+  const [previous] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => []);
+  if (target && !target.active) {
+    await chrome.tabs.update(tabId, { active: true }).catch(() => undefined);
+    await sleep(120);
   }
+  try {
+    return await fn();
+  } finally {
+    if (previous && previous.id !== tabId) {
+      await chrome.tabs.update(previous.id, { active: true }).catch(() => undefined);
+    }
+  }
+}
+
+async function captureFullPage(tabId) {
+  return withActiveTab(tabId, async () => {
+    const base = { format: "png", fromSurface: true };
+    try {
+    const metrics = await cdp.send(tabId, "Page.getLayoutMetrics", {}, { timeoutMs: 8000 });
+    const size = metrics?.cssContentSize ?? metrics?.contentSize;
+    if (!size || !(size.width > 0) || !(size.height > 0)) throw new Error("no layout metrics");
+    const width = Math.min(Math.ceil(size.width), 12000);
+    const height = Math.min(Math.ceil(size.height), 12000);
+    const shot = await cdp.send(
+      tabId,
+      "Page.captureScreenshot",
+      {
+        ...base,
+        captureBeyondViewport: true,
+        clip: { x: 0, y: 0, width, height, scale: 1 },
+      },
+      { timeoutMs: 12000 },
+    );
+    if (!shot?.data) throw new Error("no image data");
+      return { format: "png", mimeType: "image/png", data: shot.data, full_page: height >= size.height };
+    } catch (error) {
+      const shot = await cdp.send(tabId, "Page.captureScreenshot", { ...base, captureBeyondViewport: false }, { timeoutMs: 8000 });
+      if (!shot?.data) throw error;
+      return { format: "png", mimeType: "image/png", data: shot.data, full_page: false };
+    }
+  });
 }
 
 async function pageBrief(tab, args = {}) {
@@ -500,8 +532,15 @@ async function screenshot(args) {
   const tab = await resolveTab(args);
   const format = args.format === "jpeg" ? "jpeg" : "png";
   const params = { format };
-  if (args.full_page === true) params.captureBeyondViewport = true;
   if (format === "jpeg") params.quality = clamp(args.quality ?? 80, 1, 100);
+  if (args.full_page === true && !(args.target ?? args.selector)) {
+    const metrics = await cdp.send(tab.id, "Page.getLayoutMetrics", {}, { timeoutMs: 8000 });
+    const size = metrics?.cssContentSize ?? metrics?.contentSize;
+    if (size && size.width > 0 && size.height > 0) {
+      params.captureBeyondViewport = true;
+      params.clip = { x: 0, y: 0, width: Math.min(Math.ceil(size.width), 12000), height: Math.min(Math.ceil(size.height), 12000), scale: 1 };
+    }
+  }
   const target = args.target ?? args.selector;
   if (target) {
     const objectId = await cdp.resolveTarget(tab.id, target, "screenshot");
@@ -734,12 +773,11 @@ async function batchActions(args) {
   await interactiveBrief(tab.id, { limit: args.brief_limit ?? 160 });
   const results = [];
   for (const command of parsed) {
-    const ref = getBriefRef(tab.id, command.id);
-    if (!ref) {
+    const target = getBriefRef(tab.id, command.id);
+    if (!target) {
       results.push({ id: command.id, action: command.action, ok: false, error: "unknown or stale element id" });
       break;
     }
-    const target = `@${ref}`;
     try {
       let result;
       if (command.action === "click") result = await click({ target, _tabId: tab.id });

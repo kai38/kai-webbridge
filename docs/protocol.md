@@ -187,8 +187,8 @@ current tab exists) return:
     "counts": {"buttons": 10, "text_fields": 4, "links": 3},
     "total": 17,
     "interactive": [
-      {"id": 1, "ref": "@e1", "role": "button", "type": "button", "name": "Search"},
-      {"id": 2, "ref": "@e2", "role": "textbox", "type": "text", "name": "Query", "value": ""}
+      {"id": 1, "target": "[data-kai-wb=\"1\"]", "role": "button", "type": "button", "name": "Search"},
+      {"id": 2, "target": "[data-kai-wb=\"2\"]", "role": "textbox", "type": "text", "name": "Query", "value": ""}
     ]
   },
   "screenshot": {"format": "png", "path": "...", "sizeBytes": 12345, "full_page": true},
@@ -197,8 +197,9 @@ current tab exists) return:
 ```
 
 `interactive` is capped at 160 entries (`truncated:true` when the page has more).
-IDs map to the same stable `@e` refs used by `snapshot`. Set `brief:false` to skip
-the brief and screenshot.
+IDs map to DOM targets that `batch` uses. Set `brief:false` to skip the brief and
+screenshot. Screenshots of background tabs briefly activate the tab and restore the
+previously active tab.
 
 `batch` accepts compact commands:
 

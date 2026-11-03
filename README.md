@@ -151,8 +151,8 @@ interactive elements and a full-page screenshot:
   "page": {
     "counts": {"buttons": 10, "text_fields": 4, "links": 3},
     "interactive": [
-      {"id": 1, "role": "button", "name": "Search", "ref": "@e1"},
-      {"id": 2, "type": "text", "name": "Query", "ref": "@e2"}
+      {"id": 1, "role": "button", "name": "Search", "target": "[data-kai-wb=\"1\"]"},
+      {"id": 2, "type": "text", "name": "Query", "target": "[data-kai-wb=\"2\"]"}
     ]
   },
   "screenshot_path": "/tmp/kai-webbridge-screenshots/screenshot_…png"

@@ -1,4 +1,4 @@
-import { assignRef, ensureAttached, getRef, pageInfo, send } from "./cdp.js";
+import { assignRef, ensureAttached, evaluate, getRef, pageInfo, send } from "./cdp.js";
 import { clamp, cleanText } from "./util.js";
 
 const MAX_AX_NODES = 20000;
@@ -213,118 +213,148 @@ function jsonNodes(node, depth, budget, context) {
   return [entry];
 }
 
-// Numeric IDs from the latest page brief, keyed by tab. Batch actions resolve
-// these IDs to the same stable @e refs used by snapshot.
-const briefRefs = new Map();
+// Numeric IDs from the latest page brief, keyed by tab. Targets are CSS
+// selectors (`[data-kai-wb="N"]`) so batch actions do not depend on the slower
+// accessibility tree.
+const briefTargets = new Map();
 
-const TYPE_LABELS = {
-  textbox: "text",
-  searchbox: "search",
-  combobox: "select",
-  listbox: "list",
-  button: "button",
-  link: "link",
-  checkbox: "checkbox",
-  radio: "radio",
-  switch: "switch",
-  slider: "slider",
-  spinbutton: "number",
-  tab: "tab",
-  menuitem: "menu",
-  menuitemcheckbox: "menu-checkbox",
-  menuitemradio: "menu-radio",
-  option: "option",
-  treeitem: "tree-item",
-};
-
-function propValue(node, name) {
-  const prop = (node.properties ?? []).find((item) => item.name === name);
-  return prop?.value?.value;
-}
-
-/**
- * Build the compact, numbered interactive list returned when a page is opened
- * or attached. IDs are stable for the current brief and map to snapshot refs.
- */
-export async function interactiveBrief(tabId, { limit = 160, maxValue = 160 } = {}) {
-  await ensureAttached(tabId);
-  const response = await send(tabId, "Accessibility.getFullAXTree", {}, { timeoutMs: 60000 });
-  const nodes = Array.isArray(response?.nodes) ? response.nodes.slice(0, MAX_AX_NODES) : [];
-  if (nodes.length === 0) throw new Error("page brief: the page returned an empty accessibility tree");
-  const byId = new Map(nodes.map((node) => [node.nodeId, node]));
-  const seen = new Set();
+const DOM_BRIEF = String.raw`(() => {
+  const MAX = 160;
   const items = [];
-  let totalInteractive = 0;
   const counts = { buttons: 0, links: 0, text_fields: 0, selects: 0, checkboxes: 0, other: 0 };
-
-  const walk = (node) => {
-    if (!node) return;
-    if (node.ignored) {
-      for (const id of node.childIds ?? []) walk(byId.get(id));
-      return;
-    }
-    const role = node.role?.value ?? "generic";
-    if (INTERACTIVE_ROLES.has(role) && Number.isInteger(node.backendDOMNodeId)) {
-      const backend = node.backendDOMNodeId;
-      if (!seen.has(backend)) {
-        seen.add(backend);
-        totalInteractive += 1;
-        if (role === "button") counts.buttons += 1;
-        else if (role === "link") counts.links += 1;
-        else if (role === "textbox" || role === "searchbox" || role === "spinbutton" || role === "slider") counts.text_fields += 1;
-        else if (role === "combobox" || role === "listbox") counts.selects += 1;
-        else if (role === "checkbox" || role === "radio" || role === "switch") counts.checkboxes += 1;
-        else counts.other += 1;
-
-        const ref = assignRef(tabId, backend);
-        if (ref) {
-          const item = {
-            id: items.length + 1,
-            ref: `@${ref}`,
-            role,
-            type: TYPE_LABELS[role] ?? role,
-            name: cleanText(node.name?.value, 180),
-            value: cleanText(node.value?.value, maxValue),
-          };
-          const disabled = propValue(node, "disabled");
-          const required = propValue(node, "required");
-          const readonly = propValue(node, "readonly");
-          const checked = propValue(node, "checked");
-          const expanded = propValue(node, "expanded");
-          const selected = propValue(node, "selected");
-          if (disabled === true) item.disabled = true;
-          if (required === true) item.required = true;
-          if (readonly === true) item.readonly = true;
-          if (checked !== undefined) item.checked = checked === true || checked === "true";
-          if (expanded !== undefined) item.expanded = expanded === true || expanded === "true";
-          if (selected !== undefined) item.selected = selected === true || selected === "true";
-          if (items.length < limit) items.push(item);
-        }
-      }
-    }
-    for (const id of node.childIds ?? []) walk(byId.get(id));
+  let total = 0;
+  const seen = new Set();
+  const isVisible = (el) => {
+    const rect = el.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return false;
+    const style = getComputedStyle(el);
+    return style.visibility !== "hidden" && style.display !== "none" && style.opacity !== "0";
   };
-
-  const root = nodes.find((node) => !node.parentId && !node.ignored) ?? nodes.find((node) => !node.parentId) ?? nodes[0];
-  walk(root);
-  const info = await pageInfo(tabId).catch(() => ({}));
-  const refs = new Map(items.map((item) => [item.id, item.ref.slice(1)]));
-  briefRefs.set(tabId, { refs, at: Date.now() });
+  const text = (value, max) => String(value ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+  const labelFor = (el) => {
+    const ids = (el.getAttribute("aria-labelledby") || "").split(/\s+/).filter(Boolean);
+    if (ids.length) {
+      const label = ids.map((id) => document.getElementById(id)?.innerText || "").join(" ").trim();
+      if (label) return label;
+    }
+    const labels = el.labels ? [...el.labels] : [];
+    if (labels.length) return labels.map((label) => label.innerText || "").join(" ").trim();
+    if (el.id) {
+      const label = document.querySelector('label[for="' + CSS.escape(el.id) + '"]');
+      if (label) return label.innerText || "";
+    }
+    const parent = el.closest("label");
+    return parent ? parent.innerText || "" : "";
+  };
+  const roleOf = (el) => {
+    const explicit = (el.getAttribute("role") || "").trim();
+    if (explicit) return explicit;
+    const tag = el.tagName.toLowerCase();
+    if (el.isContentEditable) return "textbox";
+    if (tag === "button") return "button";
+    if (tag === "a") return "link";
+    if (tag === "select") return "combobox";
+    if (tag === "textarea") return "textbox";
+    if (tag === "input") {
+      const type = (el.type || "text").toLowerCase();
+      if (type === "checkbox" || type === "radio") return type;
+      if (type === "range") return "slider";
+      if (type === "number") return "spinbutton";
+      if (type === "file") return "button";
+      if (type === "submit" || type === "button" || type === "reset") return "button";
+      return "textbox";
+    }
+    return "";
+  };
+  const typeOf = (el, role) => {
+    const type = (el.getAttribute("type") || "").toLowerCase();
+    if (role === "textbox" || role === "searchbox") return type === "password" ? "password" : type === "search" ? "search" : "text";
+    if (role === "combobox") return "select";
+    return role;
+  };
+  const candidates = document.querySelectorAll(
+    'a[href],button,input,textarea,select,[role="button"],[role="link"],[role="textbox"],[role="searchbox"],[role="checkbox"],[role="radio"],[role="switch"],[role="combobox"],[role="listbox"],[role="slider"],[role="spinbutton"],[role="tab"],[role="menuitem"],[role="option"],[contenteditable="true"],[contenteditable=""]'
+  );
+  for (const el of candidates) {
+    if (seen.has(el) || !isVisible(el)) continue;
+    const tag = el.tagName.toLowerCase();
+    if (tag === "input" && ["hidden", "image"].includes((el.type || "").toLowerCase())) continue;
+    if (tag === "input" && ["submit", "button", "reset"].includes((el.type || "").toLowerCase()) && !(el.value || el.getAttribute("aria-label"))) continue;
+    seen.add(el);
+    const role = roleOf(el);
+    if (!role) continue;
+    total += 1;
+    const type = typeOf(el, role);
+    if (role === "button") counts.buttons += 1;
+    else if (role === "link") counts.links += 1;
+    else if (["textbox", "searchbox", "spinbutton", "slider"].includes(role)) counts.text_fields += 1;
+    else if (["combobox", "listbox"].includes(role)) counts.selects += 1;
+    else if (["checkbox", "radio", "switch"].includes(role)) counts.checkboxes += 1;
+    else counts.other += 1;
+    if (items.length >= MAX) continue;
+    const id = items.length + 1;
+    const target = '[data-kai-wb="' + id + '"]';
+    el.setAttribute("data-kai-wb", String(id));
+    const label = labelFor(el) || el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.getAttribute("alt") || el.getAttribute("title") || (["button", "link", "tab", "menuitem", "option"].includes(role) ? el.innerText : "") || el.getAttribute("name") || (tag === "input" ? el.value : "") || "";
+    const item = {
+      id,
+      target,
+      role,
+      type,
+      name: text(label, 180),
+      value: "",
+      tag,
+    };
+    if (role === "combobox" || role === "listbox") {
+      item.value = text(el.options?.[el.selectedIndex]?.textContent ?? el.value ?? "", 160);
+    } else if (role === "checkbox" || role === "radio" || role === "switch") {
+      item.checked = el.checked === true || el.getAttribute("aria-checked") === "true";
+      item.value = text(el.value ?? el.getAttribute("aria-checked") ?? "", 160);
+    } else if (["textbox", "searchbox", "spinbutton", "slider"].includes(role)) {
+      item.value = type === "password" ? (el.value ? "••••••" : "") : text(el.value ?? "", 160);
+    } else {
+      item.value = text(el.value ?? "", 160);
+    }
+    if (el.disabled || el.getAttribute("aria-disabled") === "true") item.disabled = true;
+    if (el.required || el.getAttribute("aria-required") === "true") item.required = true;
+    if (el.readOnly) item.readonly = true;
+    if (el.multiple) item.multiple = true;
+    if (el.getAttribute("aria-expanded")) item.expanded = el.getAttribute("aria-expanded") === "true";
+    items.push(item);
+  }
   return {
-    url: info.url ?? "",
-    title: info.title ?? "",
+    url: location.href,
+    title: document.title,
     counts,
-    total: totalInteractive,
+    total,
+    truncated: total > items.length,
     interactive: items,
-    ...(totalInteractive > items.length ? { truncated: true } : {}),
     quick_actions: 'batch: !1:c,2:t:"text",3:s:"option"!  (c=click, t=type, s=select, k=key, h=hover, u=upload, x=check, o=uncheck)',
+  };
+})()`;
+
+export async function interactiveBrief(tabId, { limit = 160 } = {}) {
+  await ensureAttached(tabId);
+  const value = (await evaluate(tabId, DOM_BRIEF, { timeoutMs: 12000 })).value;
+  if (!value || !Array.isArray(value.interactive)) throw new Error("page brief: could not read the page");
+  const interactive = value.interactive.slice(0, Math.max(1, Math.min(Number(limit) || 160, 200)));
+  const targets = new Map(interactive.map((item) => [item.id, item.target]));
+  briefTargets.set(tabId, { targets, at: Date.now() });
+  return {
+    url: value.url ?? "",
+    title: value.title ?? "",
+    counts: value.counts ?? {},
+    total: value.total ?? interactive.length,
+    interactive,
+    ...(value.truncated ? { truncated: true } : {}),
+    quick_actions: value.quick_actions,
   };
 }
 
 export function getBriefRef(tabId, id) {
-  return briefRefs.get(tabId)?.refs.get(Number(id)) ?? null;
+  return briefTargets.get(tabId)?.targets.get(Number(id)) ?? null;
 }
 
 export function forgetBrief(tabId) {
-  briefRefs.delete(tabId);
+  briefTargets.delete(tabId);
 }
