@@ -53,7 +53,7 @@ One task = one session = one Chrome tab group.
 
 | Tool | Args | Returns | Notes |
 |---|---|---|---|
-| `navigate` | `url`, `newTab`, `group_title` | `{success,url,title,tabId}` | First call opens the tab and creates the group. `http`/`https` only. |
+| `navigate` | `url`, `newTab`, `active`, `group_title` | `{success,url,title,tabId}` | First call opens the tab and creates the group. `http`/`https` only. |
 | `find_tab` | `url`, `active` | `{success,url,title,tabId,borrowed}` | `active:true` borrows the tab the user is viewing. Matching is by host. |
 | `list_tabs` | — | `{success,tabs:[{tabId,url,title,active,groupTitle}]}` | Tabs in this session. |
 | `close_tab` | — | `{success,closed}` | Close the session's current tab. |

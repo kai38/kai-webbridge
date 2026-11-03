@@ -168,7 +168,7 @@ Old files are not cleaned up automatically.
   `mouse_click` and `cdp` use trusted CDP input.
 - Trusted input to background tabs may need focus emulation in some Chrome versions.
 - One browser per daemon; no per-agent isolation.
-- HTTP/HTTPS navigation only.
+- HTTP/HTTPS navigation only. Chrome Web Store domains can be opened but not attached to (Chrome protects them from extensions).
 - Linux is the only platform with an automated e2e run today.
 
 ## Roadmap

@@ -93,7 +93,7 @@ All arguments below are inside `args`.
 
 | Action | Arguments | Result |
 |---|---|---|
-| `navigate` | `url`, `newTab?`, `group_title?`, `timeout_ms?` | `{success,url,title,tabId}` |
+| `navigate` | `url`, `newTab?`, `active?`, `group_title?`, `timeout_ms?` | `{success,url,title,tabId,debugger_attached?}` |
 | `find_tab` | `url`, `active?` | `{success,url,title,tabId,borrowed}` |
 | `list_tabs` | — | `{success,tabs:[{tabId,url,title,active,groupTitle,borrowed}]}` |
 | `close_tab` | — | `{success,closed}` |

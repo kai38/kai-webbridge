@@ -189,6 +189,7 @@ More: [architecture](docs/architecture.md) · [protocol](docs/protocol.md) · [s
 - One browser per daemon. A second extension connection is refused with WebSocket close code `4409`.
 - No multi-agent isolation: sessions are names, not security boundaries.
 - HTTP/HTTPS only; `file://` and `chrome://` navigation is refused.
+- Chrome blocks extensions from scripting its Web Store domains (`chrome.google.com/webstore`, `chromewebstore.google.com`). `navigate` can open and group those tabs, but they cannot be snapshotted, clicked, or typed into.
 - Cross-platform code exists, but automated e2e is currently verified on Linux.
 
 ## Independence and trademarks

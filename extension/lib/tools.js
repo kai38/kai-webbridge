@@ -67,9 +67,22 @@ async function navigate(args) {
     tab = await chrome.tabs.create({ url: parsed.href, active: false });
     created = true;
   }
+  if (args.active === true) {
+    await chrome.tabs.update(tab.id, { active: true }).catch(() => undefined);
+  }
   await sleep(200);
-  await cdp.ensureAttached(tab.id);
-  if (!created) {
+
+  // Chrome refuses debugger access to its own gallery pages. Opening and
+  // grouping them still works through the tabs API, so do not fail the
+  // navigation just because the page cannot be inspected.
+  let debuggerAttached = true;
+  try {
+    await cdp.ensureAttached(tab.id);
+  } catch (error) {
+    if (!/cannot be scripted|extensions gallery/i.test(String(error?.message ?? error))) throw error;
+    debuggerAttached = false;
+  }
+  if (debuggerAttached && !created) {
     const result = await cdp.send(tab.id, "Page.navigate", { url: parsed.href });
     if (result?.errorText) throw new Error(`navigate: ${result.errorText}`);
   }
@@ -81,6 +94,7 @@ async function navigate(args) {
     url: latest.url ?? parsed.href,
     title: latest.title ?? "",
     tabId: tab.id,
+    ...(debuggerAttached ? {} : { debugger_attached: false }),
     ...(loaded ? {} : { timed_out: true }),
   };
 }
