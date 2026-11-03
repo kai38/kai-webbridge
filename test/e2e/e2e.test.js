@@ -170,9 +170,17 @@ test("end-to-end: real Chrome, extension, snapshot, click, fill, screenshot, PDF
     group_title: "Kai E2E",
   });
   assert.ok(Number.isInteger(navigated.tabId));
+  assert.ok(Array.isArray(navigated.page?.interactive));
+  assert.ok(navigated.screenshot_path, "navigate should return a full-page screenshot path");
+  assert.ok(navigated.page.interactive.some((item) => item.role === "button" && /Greet/.test(item.name)));
+  assert.ok(navigated.page.interactive.some((item) => item.type === "text" && /Name/.test(item.name)));
 
   const found = await ok("find_tab", { url: "127.0.0.1" });
   assert.equal(found.tabId, navigated.tabId);
+
+  const inspected = await ok("inspect", {});
+  assert.ok(inspected.page.interactive.some((item) => item.role === "button" && /Greet/.test(item.name)));
+  assert.ok(inspected.screenshot_path);
 
   const browserTabs = await ok("list_browser_tabs", {});
   assert.ok(browserTabs.tabs.some((tab) => tab.tabId === navigated.tabId));
@@ -198,6 +206,16 @@ test("end-to-end: real Chrome, extension, snapshot, click, fill, screenshot, PDF
   const attached = await ok("attach_tab", { tabId: navigated.tabId }, "attach");
   assert.equal(attached.borrowed, true);
   await ok("close_session", {}, "attach");
+
+  const pageButtons = inspected.page.interactive;
+  const nameField = pageButtons.find((item) => item.type === "text" && /Name/.test(item.name));
+  const greetButton = pageButtons.find((item) => item.role === "button" && /Greet/.test(item.name));
+  const batch = await ok("batch", { commands: `!${nameField.id}:t:"Kai",${greetButton.id}:c!` });
+  assert.equal(batch.success, true);
+  assert.equal(batch.executed.length, 2);
+  assert.ok(batch.screenshot_path);
+  const batchOut = await ok("evaluate", { code: "document.getElementById('out').textContent" });
+  assert.equal(batchOut.value, "Hello Kai");
 
   const snapshot = await ok("snapshot", { format: "aria" });
   assert.match(snapshot.tree_text, /button "Greet"/);

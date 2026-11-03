@@ -55,3 +55,23 @@ test("empty payloads are rejected", async () => {
   await assert.rejects(() => store.process("screenshot", { data: "" }, {}), /no screenshot data/);
   await assert.rejects(() => store.process("save_as_pdf", {}, {}), /no PDF data/);
 });
+
+test("nested page-brief screenshots become files and keep metadata", async () => {
+  const dir = await tempDir();
+  const store = new OutputStore({ baseDir: dir, logger });
+  const data = Buffer.from("brief-png").toString("base64");
+  const result = await store.process(
+    "navigate",
+    {
+      success: true,
+      page: { title: "Example" },
+      screenshot: { format: "png", mimeType: "image/png", data, full_page: true },
+    },
+    {},
+  );
+  assert.equal(result.page.title, "Example");
+  assert.equal(result.screenshot.full_page, true);
+  assert.equal(result.screenshot.data, undefined);
+  assert.equal(result.screenshot_path, result.screenshot.path);
+  assert.equal(await fs.readFile(result.screenshot_path, "utf8"), "brief-png");
+});

@@ -76,7 +76,8 @@ Key decisions:
   browser also restarts, tab IDs are stale and the extension's group binding plus
   `list_tabs` reconcile the session.
 - **Files, not base64, for screenshots and PDFs.** The model gets a path; binary data
-  stays out of the context window.
+  stays out of the context window. Page-changing tools automatically return a numbered
+  interactive brief plus a full-page screenshot path.
 - **No logging of page content or arguments.** Logs contain session, tool, duration,
   and error codes.
 
@@ -90,10 +91,10 @@ The extension is a module service worker with no build step. `background.js` sta
 |---|---|
 | `lib/connection.js` | WebSocket lifecycle, hello handshake, heartbeat, retry, tool dispatch. |
 | `lib/cdp.js` | `chrome.debugger` attach/detach, per-tab command queue, dialog race, refs, evaluate/call helpers. |
-| `lib/snapshot.js` | Accessibility tree fetch, ref assignment, ARIA/JSON renderers. |
+| `lib/snapshot.js` | Accessibility tree fetch, ref assignment, numbered interactive briefs, ARIA/JSON renderers. |
 | `lib/tabs.js` | Session tab groups, persistence, lookup, close. |
 | `lib/network.js` | Per-tab `Network.*` capture buffer and body retrieval. |
-| `lib/tools.js` | The 21 tool implementations. |
+| `lib/tools.js` | The 27 tool implementations, including `inspect` and compact `batch`. |
 | `lib/browser-tabs.js` | URL matching/ranking for borrowing already-open tabs. |
 | `sidepanel.html/js/css` | Persistent side panel: status, browser, versions, server, reconnect/options. |
 | `options.html/js` | Server URL, token, auto-connect, live status. |

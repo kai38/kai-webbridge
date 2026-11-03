@@ -60,18 +60,53 @@ When the user says "use the page I have open" or asks about an existing tab:
 3. Do not group, rename, navigate, or close a borrowed tab implicitly. `navigate` needs `newTab:true` or `adopt:true`; `close_tab` needs `force:true`.
 4. `close_session` leaves borrowed tabs open; release them by attaching another tab or closing the session.
 
+## Page briefs and batch actions
+
+`navigate`, `find_tab`, `attach_tab`, and `list_tabs` return a `page` brief automatically:
+
+```json
+"page": {
+  "counts": {"buttons": 10, "text_fields": 4, "links": 3},
+  "interactive": [
+    {"id": 1, "role": "button", "name": "Search", "ref": "@e1"},
+    {"id": 2, "type": "text", "name": "Query", "ref": "@e2"}
+  ]
+},
+"screenshot_path": "/tmp/...png"
+```
+
+Use the numbers in one `batch` call:
+
+```json
+{"action":"batch","args":{"commands":"!2:t:\"Kai WebBridge\",1:c!"},"session":"task"}
+```
+
+- `c`/`1` click, `t`/`2` type, `s`/`3` select, `k`/`4` key, `h`/`5` hover,
+  `u`/`6` upload, `x`/`7` check, `o`/`8` uncheck.
+- `2:"text"` means fill element 2.
+- `1:3` with no value falls back to click.
+- Batch returns a fresh `page` + `screenshot_path`; IDs reset after navigation.
+- Use `brief:false` to skip the automatic brief/screenshot.
+- If an ID is missing or stale, call `inspect` first.
+
 ## Tools
 
 | Tool | Args | Returns | Notes |
 |---|---|---|---|
-| `navigate` | `url`, `newTab`, `active`, `group_title` | `{success,url,title,tabId}` | First call opens the tab and creates the group. `http`/`https` only. |
-| `find_tab` | `url?`, `active?`, `borrow?`, `tabId?` | `{success,url,title,tabId,borrowed}` | Session tabs first; `active:true` borrows the user's current tab; `borrow:true` searches all open tabs by host; `tabId` attaches an exact tab. |
+| `navigate` | `url`, `newTab`, `active`, `group_title`, `brief?` | `{success,url,title,tabId,page,screenshot_path}` | First call opens the tab and creates the group. Returns numbered elements + full screenshot automatically. |
+| `find_tab` | `url?`, `active?`, `borrow?`, `tabId?`, `brief?` | `{success,url,title,tabId,borrowed,page,screenshot_path}` | Session tabs first; `active:true` borrows the user's current tab; `borrow:true` searches all open tabs by host; `tabId` attaches an exact tab. Auto-brief. |
 | `list_tabs` | — | `{success,tabs:[{tabId,url,title,active,groupTitle,borrowed}]}` | Tabs in this session plus the borrowed current tab. |
 | `list_browser_tabs` | — | `{success,tabs:[{tabId,url,title,active,windowId}]}` | All open http(s) tabs. Read-only. |
-| `attach_tab` | `tabId` | `{success,tabId,url,title,borrowed}` | Attach an exact tab returned by `list_browser_tabs`. |
+| `attach_tab` | `tabId`, `brief?` | `{success,tabId,url,title,borrowed,page,screenshot_path}` | Attach an exact tab returned by `list_browser_tabs`; auto-brief. |
 | `close_tab` | `force?` | `{success,closed,tabId}` | Closes the current tab. A borrowed tab needs `force:true`. |
 | `close_session` | — | `{success,closed}` | Close the whole group. |
 | `snapshot` | `format` (`json`/`aria`), `max_chars`, `interactive`, `ref` | `{url,title,tree_text}` with `[ref=eN]` | Accessibility tree. Prefer this over CSS selectors. |
+| `inspect` | `brief?`, `screenshot?` | `{success,page,screenshot_path}` | Re-scrape numbered elements + full-page screenshot without acting. |
+| `batch` | `commands` | `{success,executed,page,screenshot_path}` | Do several numbered actions at once. |
+| `select` | `target`, `value` | `{success,mode,value}` | Native `<select>` or visible ARIA options. |
+| `press_key` | `target?`, `key` | `{success,key}` | Focus target, then press Enter/Tab/Escape/etc. |
+| `check` / `uncheck` | `target` | `{success,checked}` | Toggle checkbox/radio/ARIA switch. |
+| `hover` | `target` | `{success,x,y}` | Move real mouse to element centre. |
 | `read_page` | `max_chars` | `{url,title,text}` | Plain text of the page. |
 | `click` | `target` or `selector` (`@eN` or CSS) | `{success,tag,text}` | DOM `.click()`. Sites that require trusted events may ignore it; try `mouse_click`. |
 | `mouse_click` | `target` or `selector` | `{success,tag,x,y}` | Real CDP mouse events at the element center. |

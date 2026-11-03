@@ -30,6 +30,9 @@ What it can do:
 - Take screenshots and save pages as PDFs to local files.
 - Run JavaScript and raw Chrome DevTools Protocol commands when the local agent asks.
 - Capture network requests for a tab while capture is enabled.
+- Numbered interactive map and full-page screenshot whenever a page is opened, attached,
+  or resumed.
+- Batch actions such as `!2:t:"text",1:c!` fill and click several elements in one call.
 - Resume a task after a daemon restart; a status side panel shows the connected browser and
   daemon state.
 
@@ -126,7 +129,7 @@ Chromium restriction, not a test failure.
 ## Assets checklist
 
 - [x] 128×128 store icon: `extension/icons/128.png`
-- [x] Extension ZIP: `dist/kai-webbridge-extension-0.1.3.zip`
+- [x] Extension ZIP: `dist/kai-webbridge-extension-0.1.4.zip`
 - [x] At least one 1280×800 screenshot: `docs/store/screenshots/options-1280x800.png`
 - [x] 440×280 small promo tile: `docs/store/promo-440x280.png`
 - [x] Privacy policy URL

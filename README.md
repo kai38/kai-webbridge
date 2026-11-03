@@ -114,8 +114,8 @@ curl -s -X POST http://127.0.0.1:10087/command \
 | Category | Tools |
 |---|---|
 | Tabs | `navigate`, `find_tab`, `list_tabs`, `list_browser_tabs`, `attach_tab`, `close_tab`, `close_session` |
-| Observe | `snapshot`, `read_page`, `wait` |
-| Act | `click`, `mouse_click`, `fill`, `scroll`, `upload`, `dialog` |
+| Observe | `snapshot`, `inspect`, `read_page`, `wait` |
+| Act | `click`, `mouse_click`, `fill`, `select`, `press_key`, `check`, `hover`, `batch`, `scroll`, `upload`, `dialog` |
 | Run | `evaluate`, `cdp` |
 | Capture | `screenshot`, `save_as_pdf`, `network` |
 
@@ -140,6 +140,34 @@ To work on a page the user already has open:
 ```
 
 Or inspect all open pages with `list_browser_tabs`, then `attach_tab` a `tabId`. Borrowed tabs are **not** moved into the session group and are not closed by `close_session`. `close_tab` requires `force:true` to close one; `navigate` requires `newTab:true` or `adopt:true` to reuse one.
+
+## Page briefs and batch actions
+
+When a page is opened, attached, or resumed, the response includes a numbered map of
+interactive elements and a full-page screenshot:
+
+```json
+{
+  "page": {
+    "counts": {"buttons": 10, "text_fields": 4, "links": 3},
+    "interactive": [
+      {"id": 1, "role": "button", "name": "Search", "ref": "@e1"},
+      {"id": 2, "type": "text", "name": "Query", "ref": "@e2"}
+    ]
+  },
+  "screenshot_path": "/tmp/kai-webbridge-screenshots/screenshot_…png"
+}
+```
+
+Fill and click several elements in one call:
+
+```json
+{"action":"batch","args":{"commands":"!2:t:\"Kai WebBridge\",1:c!"},"session":"research"}
+```
+
+`batch` supports `c`/click, `t`/type, `s`/select, `k`/key, `h`/hover, `u`/upload,
+`x`/check, `o`/uncheck, with numeric aliases `1`–`8`. `id:"text"` means fill.
+`inspect` re-scrapes without acting. IDs reset after navigation or reload.
 
 ## Configuration
 

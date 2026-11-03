@@ -21,6 +21,17 @@ export class OutputStore {
   async process(action, data, args = {}) {
     if (action === "screenshot") return this.#writeScreenshot(data, args);
     if (action === "save_as_pdf") return this.#writePdf(data, args);
+    if (data && data.screenshot && typeof data.screenshot.data === "string") {
+      const screenshot = await this.#writeScreenshot(data.screenshot, args);
+      return {
+        ...data,
+        screenshot: {
+          ...screenshot,
+          full_page: data.screenshot.full_page === true,
+        },
+        screenshot_path: screenshot.path,
+      };
+    }
     return data;
   }
 

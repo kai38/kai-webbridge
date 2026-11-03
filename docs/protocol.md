@@ -103,21 +103,27 @@ All arguments below are inside `args`.
 
 | Action | Arguments | Result |
 |---|---|---|
-| `navigate` | `url`, `newTab?`, `active?`, `adopt?`, `group_title?`, `timeout_ms?` | `{success,url,title,tabId,debugger_attached?}` |
-| `find_tab` | `url?`, `active?`, `borrow?`, `tabId?` | `{success,url,title,tabId,borrowed}` |
+| `navigate` | `url`, `newTab?`, `active?`, `adopt?`, `group_title?`, `timeout_ms?`, `brief?` | `{success,url,title,tabId,page,screenshot_path,debugger_attached?}` |
+| `find_tab` | `url?`, `active?`, `borrow?`, `tabId?`, `brief?` | `{success,url,title,tabId,borrowed,page,screenshot_path}` |
 | `list_browser_tabs` | — | `{success,tabs:[{tabId,url,title,active,windowId}]}` |
-| `attach_tab` | `tabId` | `{success,tabId,url,title,borrowed}` |
+| `attach_tab` | `tabId`, `brief?` | `{success,tabId,url,title,borrowed,page,screenshot_path}` |
 | `list_tabs` | — | `{success,tabs:[{tabId,url,title,active,groupTitle,borrowed}]}` |
 | `close_tab` | `force?` | `{success,closed,tabId}` |
 | `close_session` | — | `{success,closed}` |
 | `snapshot` | `format?` (`json`/`aria`), `max_chars?`, `interactive?`, `ref?` | `{url,title,tree_text?,tree?,ref_policy,truncated?}` |
+| `inspect` | `screenshot?`, `brief_limit?` | `{success,page,screenshot_path}` |
+| `batch` | `commands` | `{success,executed,page,screenshot_path}` |
+| `select` | `target`, `value` | `{success,mode,value}` |
+| `press_key` | `target?`, `key` | `{success,key}` |
+| `check` / `uncheck` | `target` | `{success,checked}` |
+| `hover` | `target` | `{success,x,y}` |
 | `read_page` | `max_chars?` | `{url,title,text}` |
 | `click` | `target` or `selector` | `{success,tag,text}` |
 | `mouse_click` | `target` or `selector` | `{success,tag,x,y}` |
 | `fill` | `target`/`selector`, `value` | `{success,tag,mode}` (`value` or `contenteditable`) |
 | `evaluate` | `code` | `{type,value}` |
 | `cdp` | `method`, `params?` | Raw CDP result |
-| `screenshot` | `format?`, `quality?`, `target?`/`selector?`, `path?` | `{format,path,sizeBytes,mimeType}` |
+| `screenshot` | `format?`, `quality?`, `target?`/`selector?`, `path?`, `full_page?` | `{format,path,sizeBytes,mimeType}` |
 | `save_as_pdf` | `paper_format?`, `landscape?`, `scale?`, `print_background?`, `path?` | `{path,sizeBytes,mimeType,pageTitle}` |
 | `network` | `cmd` (`start`/`stop`/`list`/`detail`), `filter?`, `requestId?` | `{count,requests}` / request detail |
 | `upload` | `target`/`selector`, `files` | `{success,fileCount}` |
@@ -167,6 +173,44 @@ Network capture:
 # stop releases the response bodies
 ... -d '{"action":"network","args":{"cmd":"stop"},"session":"demo"}'
 ```
+
+## Page briefs and batch actions
+
+Page-changing actions (`navigate`, `find_tab`, `attach_tab`, and `list_tabs` when a
+current tab exists) return:
+
+```json
+{
+  "page": {
+    "url": "https://example.com/",
+    "title": "Example",
+    "counts": {"buttons": 10, "text_fields": 4, "links": 3},
+    "total": 17,
+    "interactive": [
+      {"id": 1, "ref": "@e1", "role": "button", "type": "button", "name": "Search"},
+      {"id": 2, "ref": "@e2", "role": "textbox", "type": "text", "name": "Query", "value": ""}
+    ]
+  },
+  "screenshot": {"format": "png", "path": "...", "sizeBytes": 12345, "full_page": true},
+  "screenshot_path": "..."
+}
+```
+
+`interactive` is capped at 160 entries (`truncated:true` when the page has more).
+IDs map to the same stable `@e` refs used by `snapshot`. Set `brief:false` to skip
+the brief and screenshot.
+
+`batch` accepts compact commands:
+
+```json
+{"action":"batch","args":{"commands":"!1:c,2:t:\"Kai\",3:s:\"US\",4:k:Enter!"}}
+```
+
+- `c`/`1` click, `t`/`2` fill, `s`/`3` select, `k`/`4` press, `h`/`5` hover,
+  `u`/`6` upload, `x`/`7` check, `o`/`8` uncheck.
+- `2:"text"` is shorthand for fill; `1:3` without a value falls back to click.
+- Ranges are allowed: `1-3:c`.
+- Executes sequentially, stops at the first error, and returns a fresh page brief.
 
 ## Session persistence
 

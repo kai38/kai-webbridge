@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Kai WebBridge",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Let a local AI agent drive your real Chrome through the Kai WebBridge daemon. Open source, no telemetry.",
   "minimum_chrome_version": "120",
   "background": {

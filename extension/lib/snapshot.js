@@ -212,3 +212,119 @@ function jsonNodes(node, depth, budget, context) {
   if (children.length > 0) entry.children = children;
   return [entry];
 }
+
+// Numeric IDs from the latest page brief, keyed by tab. Batch actions resolve
+// these IDs to the same stable @e refs used by snapshot.
+const briefRefs = new Map();
+
+const TYPE_LABELS = {
+  textbox: "text",
+  searchbox: "search",
+  combobox: "select",
+  listbox: "list",
+  button: "button",
+  link: "link",
+  checkbox: "checkbox",
+  radio: "radio",
+  switch: "switch",
+  slider: "slider",
+  spinbutton: "number",
+  tab: "tab",
+  menuitem: "menu",
+  menuitemcheckbox: "menu-checkbox",
+  menuitemradio: "menu-radio",
+  option: "option",
+  treeitem: "tree-item",
+};
+
+function propValue(node, name) {
+  const prop = (node.properties ?? []).find((item) => item.name === name);
+  return prop?.value?.value;
+}
+
+/**
+ * Build the compact, numbered interactive list returned when a page is opened
+ * or attached. IDs are stable for the current brief and map to snapshot refs.
+ */
+export async function interactiveBrief(tabId, { limit = 160, maxValue = 160 } = {}) {
+  await ensureAttached(tabId);
+  const response = await send(tabId, "Accessibility.getFullAXTree", {}, { timeoutMs: 60000 });
+  const nodes = Array.isArray(response?.nodes) ? response.nodes.slice(0, MAX_AX_NODES) : [];
+  if (nodes.length === 0) throw new Error("page brief: the page returned an empty accessibility tree");
+  const byId = new Map(nodes.map((node) => [node.nodeId, node]));
+  const seen = new Set();
+  const items = [];
+  let totalInteractive = 0;
+  const counts = { buttons: 0, links: 0, text_fields: 0, selects: 0, checkboxes: 0, other: 0 };
+
+  const walk = (node) => {
+    if (!node) return;
+    if (node.ignored) {
+      for (const id of node.childIds ?? []) walk(byId.get(id));
+      return;
+    }
+    const role = node.role?.value ?? "generic";
+    if (INTERACTIVE_ROLES.has(role) && Number.isInteger(node.backendDOMNodeId)) {
+      const backend = node.backendDOMNodeId;
+      if (!seen.has(backend)) {
+        seen.add(backend);
+        totalInteractive += 1;
+        if (role === "button") counts.buttons += 1;
+        else if (role === "link") counts.links += 1;
+        else if (role === "textbox" || role === "searchbox" || role === "spinbutton" || role === "slider") counts.text_fields += 1;
+        else if (role === "combobox" || role === "listbox") counts.selects += 1;
+        else if (role === "checkbox" || role === "radio" || role === "switch") counts.checkboxes += 1;
+        else counts.other += 1;
+
+        const ref = assignRef(tabId, backend);
+        if (ref) {
+          const item = {
+            id: items.length + 1,
+            ref: `@${ref}`,
+            role,
+            type: TYPE_LABELS[role] ?? role,
+            name: cleanText(node.name?.value, 180),
+            value: cleanText(node.value?.value, maxValue),
+          };
+          const disabled = propValue(node, "disabled");
+          const required = propValue(node, "required");
+          const readonly = propValue(node, "readonly");
+          const checked = propValue(node, "checked");
+          const expanded = propValue(node, "expanded");
+          const selected = propValue(node, "selected");
+          if (disabled === true) item.disabled = true;
+          if (required === true) item.required = true;
+          if (readonly === true) item.readonly = true;
+          if (checked !== undefined) item.checked = checked === true || checked === "true";
+          if (expanded !== undefined) item.expanded = expanded === true || expanded === "true";
+          if (selected !== undefined) item.selected = selected === true || selected === "true";
+          if (items.length < limit) items.push(item);
+        }
+      }
+    }
+    for (const id of node.childIds ?? []) walk(byId.get(id));
+  };
+
+  const root = nodes.find((node) => !node.parentId && !node.ignored) ?? nodes.find((node) => !node.parentId) ?? nodes[0];
+  walk(root);
+  const info = await pageInfo(tabId).catch(() => ({}));
+  const refs = new Map(items.map((item) => [item.id, item.ref.slice(1)]));
+  briefRefs.set(tabId, { refs, at: Date.now() });
+  return {
+    url: info.url ?? "",
+    title: info.title ?? "",
+    counts,
+    total: totalInteractive,
+    interactive: items,
+    ...(totalInteractive > items.length ? { truncated: true } : {}),
+    quick_actions: 'batch: !1:c,2:t:"text",3:s:"option"!  (c=click, t=type, s=select, k=key, h=hover, u=upload, x=check, o=uncheck)',
+  };
+}
+
+export function getBriefRef(tabId, id) {
+  return briefRefs.get(tabId)?.refs.get(Number(id)) ?? null;
+}
+
+export function forgetBrief(tabId) {
+  briefRefs.delete(tabId);
+}
