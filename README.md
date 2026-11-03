@@ -9,7 +9,7 @@
 No cloud service, no headless browser, no telemetry. The agent talks HTTP to `127.0.0.1`; the extension executes commands with `chrome.debugger`.
 
 ```
-Agent (Claude Code, Codex, Kimi CLI, …)
+Local agent or script
   │  POST http://127.0.0.1:10087/command   {"action","args","session"}
   ▼
 Kai WebBridge daemon (Node.js)  ──  sessions, output files, optional token
@@ -50,7 +50,7 @@ Release tarballs are also attached to every GitHub release for offline installs.
 
 ### What `setup` does
 
-1. Copies the agent skill into detected runtimes (`~/.claude`, `~/.codex`, `~/.kimi-code`) and `~/.kai-webbridge/skills`.
+1. Copies the agent skill into detected runtimes and `~/.kai-webbridge/skills`.
 2. Copies the extension to a **stable path**, `~/.kai-webbridge/extension`, so Chrome keeps the same extension ID across upgrades.
 3. Starts the daemon on `127.0.0.1:10087`.
 4. Prints the extension folder to load.

@@ -23,8 +23,8 @@ why they are split that way and how a command moves through them.
 ```
 ┌─────────────────────────────┐
 │ Agent runtime               │
-│ (Claude Code, Codex, Kimi   │  Reads skill/kai-webbridge/SKILL.md and
-│ CLI, any HTTP client)       │  POSTs JSON to the daemon.
+│ (anything that can POST     │  Reads skill/kai-webbridge/SKILL.md and
+│ JSON)                       │  POSTs JSON to the daemon.
 └──────────────┬──────────────┘
                │ HTTP 127.0.0.1:10087
 ┌──────────────▼──────────────┐

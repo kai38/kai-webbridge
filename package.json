@@ -49,7 +49,7 @@
   "dependencies": {
     "ws": "^8.18.0"
   },
-  "author": "Kai WebBridge contributors",
+  "author": "Kai",
   "homepage": "https://github.com/kai38/kai-webbridge#readme",
   "repository": {
     "type": "git",

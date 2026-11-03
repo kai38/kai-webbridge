@@ -264,7 +264,6 @@ async function installSkill(flags) {
   const agents = [
     [".claude", "Claude Code"],
     [".codex", "Codex"],
-    [".kimi-code", "Kimi CLI"],
   ];
   for (const [dir] of agents) {
     const base = path.join(os.homedir(), dir);
