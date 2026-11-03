@@ -1,7 +1,7 @@
 export const DEFAULT_SERVER_URL = "ws://127.0.0.1:10087/ws";
 
 export async function getSettings() {
-  const raw = await chrome.storage.local.get(["serverUrl", "token", "autoConnect", "clientId"]);
+  const raw = await chrome.storage.local.get(["serverUrl", "token", "autoConnect", "clientId", "sidePanelDefault"]);
   let clientId = raw.clientId;
   if (typeof clientId !== "string" || !clientId) {
     clientId = crypto.randomUUID();
@@ -11,6 +11,7 @@ export async function getSettings() {
     serverUrl: typeof raw.serverUrl === "string" && raw.serverUrl ? raw.serverUrl : DEFAULT_SERVER_URL,
     token: typeof raw.token === "string" ? raw.token : "",
     autoConnect: raw.autoConnect !== false,
+    sidePanelDefault: raw.sidePanelDefault !== false,
     clientId,
   };
 }
@@ -20,6 +21,7 @@ export async function saveSettings(patch) {
   if (typeof patch.serverUrl === "string") allowed.serverUrl = patch.serverUrl.trim();
   if (typeof patch.token === "string") allowed.token = patch.token;
   if (typeof patch.autoConnect === "boolean") allowed.autoConnect = patch.autoConnect;
+  if (typeof patch.sidePanelDefault === "boolean") allowed.sidePanelDefault = patch.sidePanelDefault;
   await chrome.storage.local.set(allowed);
   return getSettings();
 }

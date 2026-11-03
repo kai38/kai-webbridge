@@ -4,6 +4,7 @@ const statusEl = document.getElementById("status");
 const serverUrlEl = document.getElementById("serverUrl");
 const tokenEl = document.getElementById("token");
 const autoConnectEl = document.getElementById("autoConnect");
+const sidePanelDefaultEl = document.getElementById("sidePanelDefault");
 const savedEl = document.getElementById("saved");
 
 function render(status) {
@@ -38,6 +39,7 @@ async function refresh() {
     if (document.activeElement !== serverUrlEl) serverUrlEl.value = settings.serverUrl ?? "";
     if (document.activeElement !== tokenEl) tokenEl.value = settings.token ?? "";
     autoConnectEl.checked = settings.autoConnect !== false;
+    sidePanelDefaultEl.checked = settings.sidePanelDefault !== false;
   } catch (error) {
     stateEl.textContent = "service worker unavailable";
     dotEl.className = "dot bad";
@@ -57,6 +59,11 @@ document.getElementById("save").addEventListener("click", async () => {
   });
   savedEl.textContent = response?.ok ? "saved" : `failed: ${response?.error ?? "unknown error"}`;
   if (response?.ok) render(response.status);
+});
+
+sidePanelDefaultEl.addEventListener("change", async () => {
+  const response = await send({ type: "kai-sidepanel", enabled: sidePanelDefaultEl.checked });
+  savedEl.textContent = response?.ok ? "side panel setting saved" : `failed: ${response?.error ?? "unknown error"}`;
 });
 
 document.getElementById("openPanel").addEventListener("click", async () => {
