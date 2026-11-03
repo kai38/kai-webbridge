@@ -96,5 +96,5 @@ that can read your config file or extension storage.
 
 ## Reporting
 
-This is an open-source project. Report security issues privately to the maintainers
+This is an open-source project. Report security issues privately to the maintainer
 rather than opening a public issue with reproduction details.
