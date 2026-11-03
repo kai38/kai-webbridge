@@ -21,7 +21,9 @@
     "SECURITY.md",
     "THIRD_PARTY_NOTICES.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "PRIVACY.md",
+    "CONTRIBUTING.md"
   ],
   "engines": {
     "node": ">=20"
@@ -35,7 +37,8 @@
     "test:all": "node --test --test-concurrency=1 test/unit/browser.test.js test/unit/daemon.test.js test/unit/outputs.test.js test/unit/protocol.test.js test/unit/sessions.test.js test/e2e/e2e.test.js",
     "install-skill": "node bin/kai-webbridge.js install-skill",
     "fetch-chrome": "node scripts/fetch-chrome.mjs",
-    "setup": "node bin/kai-webbridge.js setup"
+    "setup": "node bin/kai-webbridge.js setup",
+    "package:extension": "node scripts/package-extension.mjs"
   },
   "keywords": [
     "browser-automation",

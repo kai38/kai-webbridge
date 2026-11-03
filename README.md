@@ -153,7 +153,7 @@ If `token` is set, commands must send `Authorization: Bearer <token>` and the ex
 
 ## Security, in one paragraph
 
-The extension can read and control every tab (it needs the `debugger` permission). The daemon accepts only local connections, ignores any `/command` request that carries an `Origin` header (so web pages cannot drive it), and optionally requires a bearer token. It has no telemetry. Treat the agent exactly as you would treat a person at your keyboard. Details: [docs/security.md](docs/security.md).
+The extension can read and control every tab (it needs the `debugger` permission). The daemon accepts only local connections, ignores any `/command` request that carries an `Origin` header (so web pages cannot drive it), and optionally requires a bearer token. It has no telemetry. Treat the agent exactly as you would treat a person at your keyboard. Details: [docs/security.md](docs/security.md) · [privacy policy](PRIVACY.md).
 
 ## Development
 

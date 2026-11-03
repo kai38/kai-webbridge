@@ -8,8 +8,9 @@ you can decide when to run it.
 
 - The daemon runs as **your OS user** and accepts commands from any process that can
   reach `127.0.0.1:10087`.
-- The extension holds the Chrome `debugger` permission and `<all_urls>` host access. It
-  can read and modify any tab, including logged-in sites.
+- The extension holds the Chromium `debugger` permission and can attach to the tabs the
+  user opens. It requests no host permissions. Once attached, it can read and modify
+  that tab, including logged-in sites.
 - The agent is trusted to the same degree as a person at your keyboard. A prompt
   injection that reaches the agent is effectively a request from you.
 

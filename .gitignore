@@ -2,5 +2,6 @@ node_modules/
 .cache/
 *.log
 coverage/
+dist/
 .DS_Store
 test/.tmp/
