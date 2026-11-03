@@ -68,12 +68,12 @@ Chrome only allows unpacked extensions to be loaded from its own UI:
 ### Verify
 
 ```bash
-kai-webbridge status
+curl -s http://127.0.0.1:10087/status
 ```
 
-`extension_connected: true` means the daemon and browser are talking. If the extension shows an error, open its **Options** page and confirm the WebSocket URL is `ws://127.0.0.1:10087/ws` (or the port you configured).
+`extension_connected: true` means the daemon and browser are talking. If the CLI is installed globally, `kai-webbridge status` prints the same JSON. If the extension shows an error, open its **Options** page and confirm the WebSocket URL is `ws://127.0.0.1:10087/ws` (or the port you configured).
 
-After updating the checkout, run `kai-webbridge setup` again to refresh the extension copy and skill, then reload the extension in `chrome://extensions`.
+To update, run setup again (`npx -y kai-webbridge@latest setup`, or `npm install -g kai-webbridge && kai-webbridge setup`), then reload the extension in `chrome://extensions`.
 
 ## Try it
 
