@@ -1,0 +1,64 @@
+{
+  "name": "kai-webbridge",
+  "version": "0.1.0",
+  "description": "Open-source browser bridge: let local AI agents drive the user's real Chrome through a small local daemon and a Manifest V3 extension.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "kai-webbridge": "bin/kai-webbridge.js"
+  },
+  "exports": {
+    ".": "./src/daemon.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "extension",
+    "skill",
+    "docs/architecture.md",
+    "docs/protocol.md",
+    "docs/security.md",
+    "SECURITY.md",
+    "THIRD_PARTY_NOTICES.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node bin/kai-webbridge.js start",
+    "serve": "node bin/kai-webbridge.js serve",
+    "status": "node bin/kai-webbridge.js status",
+    "test": "node --test --test-concurrency=1 \"test/unit/*.test.js\"",
+    "test:e2e": "node --test --test-concurrency=1 \"test/e2e/*.test.js\"",
+    "test:all": "node --test --test-concurrency=1 \"test/unit/*.test.js\" \"test/e2e/*.test.js\"",
+    "install-skill": "node bin/kai-webbridge.js install-skill",
+    "fetch-chrome": "node scripts/fetch-chrome.mjs",
+    "setup": "node bin/kai-webbridge.js setup"
+  },
+  "keywords": [
+    "browser-automation",
+    "chrome-extension",
+    "ai-agents",
+    "cdp",
+    "webbridge",
+    "local-first",
+    "no-telemetry"
+  ],
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "author": "Kai WebBridge contributors",
+  "homepage": "https://github.com/kai38/kai-webbridge#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kai38/kai-webbridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kai38/kai-webbridge/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

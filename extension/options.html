@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kai WebBridge — Options</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --fg: #16181d;
+        --muted: #5b6270;
+        --border: #d9dde6;
+        --accent: #2f6fed;
+        --ok: #1a7f37;
+        --bad: #b42318;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16181d;
+          --fg: #e8eaf0;
+          --muted: #9aa3b2;
+          --border: #343945;
+          --accent: #6f9bff;
+          --ok: #4ac26b;
+          --bad: #ff7b72;
+        }
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+        background: var(--bg);
+        color: var(--fg);
+        font: 14px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        margin: 0 0 24px;
+        color: var(--muted);
+      }
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+        margin: 14px 0 6px;
+      }
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 9px 11px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--fg);
+        font: inherit;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      button {
+        font: inherit;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--accent);
+        color: white;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--fg);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      #status {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: color-mix(in srgb, var(--border) 35%, transparent);
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 12px;
+      }
+      .dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--muted);
+        margin-right: 6px;
+      }
+      .dot.ok {
+        background: var(--ok);
+      }
+      .dot.bad {
+        background: var(--bad);
+      }
+      small {
+        color: var(--muted);
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Kai WebBridge</h1>
+      <p class="sub">Drive this browser from a local agent. No telemetry, no cloud, localhost only.</p>
+
+      <section class="card">
+        <div><span id="dot" class="dot"></span><strong id="state">checking…</strong></div>
+        <div id="status">—</div>
+        <div class="row">
+          <button id="reconnect" class="secondary">Reconnect</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <label for="serverUrl">Daemon WebSocket URL</label>
+        <input id="serverUrl" type="text" spellcheck="false" placeholder="ws://127.0.0.1:10087/ws" />
+
+        <label for="token">Token <small>(optional; must match the daemon's config)</small></label>
+        <input id="token" type="password" spellcheck="false" autocomplete="off" />
+
+        <div class="row">
+          <label style="margin: 0; font-weight: 400">
+            <input id="autoConnect" type="checkbox" /> Connect automatically
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="save">Save &amp; reconnect</button>
+        </div>
+        <p><small id="saved"></small></p>
+      </section>
+
+      <section class="card">
+        <strong>How to use</strong>
+        <ol>
+          <li>Run <code>kai-webbridge start</code> on this machine.</li>
+          <li>Open the daemon's status page or run <code>kai-webbridge status</code>.</li>
+          <li>Install the agent skill with <code>kai-webbridge install-skill</code>.</li>
+          <li>Ask your agent to open a page. Tabs are grouped per task; close the group when done.</li>
+        </ol>
+        <p><small>This extension can read and control every tab you open. Treat your agent as you would treat a person at your keyboard.</small></p>
+      </section>
+    </main>
+    <script src="options.js" type="module"></script>
+  </body>
+</html>
