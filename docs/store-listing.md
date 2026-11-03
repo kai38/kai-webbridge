@@ -24,11 +24,14 @@ extension executes commands in your real tabs, with your real logins.
 What it can do:
 
 - Open pages and collect each task's tabs into a visible tab group.
+- Attach to pages the user already has open, without moving or closing them.
 - Read the page as an accessibility tree with stable `@e` element references.
 - Click, type, scroll, upload files, and handle JavaScript dialogs.
 - Take screenshots and save pages as PDFs to local files.
 - Run JavaScript and raw Chrome DevTools Protocol commands when the local agent asks.
 - Capture network requests for a tab while capture is enabled.
+- Resume a task after a daemon restart; a status popup shows the connected browser and
+  daemon state.
 
 Privacy:
 
@@ -94,7 +97,7 @@ and runs on their own machine; there is no developer-operated server.
 2. Run `npx -y kai-webbridge setup` in a terminal. This starts the daemon on
    `127.0.0.1:10087` and copies the extension to `~/.kai-webbridge/extension`.
 3. Load that folder with "Load unpacked" in `chrome://extensions`.
-4. Open the extension's Options page. It should show "connected" and the browser name.
+4. Open the extension popup and Options page. Both should show "connected" and the browser name.
 5. Open `https://example.com`, then from a terminal run:
 
    ```bash

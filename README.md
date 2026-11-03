@@ -113,7 +113,7 @@ curl -s -X POST http://127.0.0.1:10087/command \
 
 | Category | Tools |
 |---|---|
-| Tabs | `navigate`, `find_tab`, `list_tabs`, `close_tab`, `close_session` |
+| Tabs | `navigate`, `find_tab`, `list_tabs`, `list_browser_tabs`, `attach_tab`, `close_tab`, `close_session` |
 | Observe | `snapshot`, `read_page`, `wait` |
 | Act | `click`, `mouse_click`, `fill`, `scroll`, `upload`, `dialog` |
 | Run | `evaluate`, `cdp` |
@@ -123,13 +123,23 @@ Full request/response reference: [docs/protocol.md](docs/protocol.md). The agent
 
 ## Sessions
 
-One task = one session = one Chrome tab group. The `session` field goes at the **top level** of the request body:
+One task = one session, with one Chrome tab group for the tabs it opens. The `session` field goes at the **top level** of the request body:
 
 ```json
 {"action":"navigate","args":{"url":"https://example.com","group_title":"Research"},"session":"research"}
 ```
 
-The daemon remembers the session's current tab and injects internal `_session`, `_tabId`, and `_ownedTabIds` fields. The extension groups the tabs visibly under the group title, and `close_session` closes the whole group. Tabs survive a daemon restart because the extension keeps the group binding.
+The daemon remembers the session's current tab and injects internal `_session`, `_tabId`, and `_ownedTabIds` fields. The extension groups the tabs visibly under the group title, and `close_session` closes the whole group.
+
+Sessions persist to `~/.kai-webbridge/sessions.json`, so they resume after a daemon restart. After a browser restart, the extension's tab-group binding and `list_tabs` re-establish the session's tabs.
+
+To work on a page the user already has open:
+
+```json
+{"action":"find_tab","args":{"url":"https://example.com","borrow":true},"session":"research"}
+```
+
+Or inspect all open pages with `list_browser_tabs`, then `attach_tab` a `tabId`. Borrowed tabs are **not** moved into the session group and are not closed by `close_session`. `close_tab` requires `force:true` to close one; `navigate` requires `newTab:true` or `adopt:true` to reuse one.
 
 ## Configuration
 
@@ -176,7 +186,7 @@ The suite runs headless and covers navigation, snapshot refs, fill, click, conte
 
 ```
 bin/            CLI entry
-src/            daemon (config, sessions, hub, HTTP, outputs, CLI)
+src/            daemon (config, sessions, hub, HTTP, outputs, persistence, CLI)
 extension/      Manifest V3 extension (no build step)
 skill/          agent skill installed by `setup` / `install-skill`
 test/unit/      fast tests without a browser
@@ -193,6 +203,7 @@ More: [architecture](docs/architecture.md) · [protocol](docs/protocol.md) · [s
 - `click`/`fill` dispatch DOM-level events, so pages that strictly require `isTrusted` may ignore them; `mouse_click` and `cdp` use real CDP input for those cases.
 - One browser per daemon. A second extension connection is refused with WebSocket close code `4409`.
 - No multi-agent isolation: sessions are names, not security boundaries.
+- Borrowed tabs are protected: `close_tab` needs `force:true`, and `navigate` needs `newTab:true` or `adopt:true`.
 - HTTP/HTTPS only; `file://` and `chrome://` navigation is refused.
 - Chromium browsers block extensions from scripting their Web Store domains (`chrome.google.com/webstore`, `chromewebstore.google.com`). `navigate` can open and group those tabs, but they cannot be snapshotted, clicked, or typed into.
 - Cross-platform code exists, but automated e2e is currently verified on Linux.

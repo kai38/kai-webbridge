@@ -94,6 +94,7 @@ Error codes:
 | `extension_error` | The tool failed; message is tool-specific. |
 | `timeout` | The tool exceeded the command timeout. |
 | `output_error` | Screenshot/PDF decoding or writing failed. |
+| `tab_not_owned` | The current tab was borrowed; pass `force:true` to close, or `newTab:true`/`adopt:true` to navigate. |
 
 ## Tools
 
@@ -102,10 +103,12 @@ All arguments below are inside `args`.
 
 | Action | Arguments | Result |
 |---|---|---|
-| `navigate` | `url`, `newTab?`, `active?`, `group_title?`, `timeout_ms?` | `{success,url,title,tabId,debugger_attached?}` |
-| `find_tab` | `url`, `active?` | `{success,url,title,tabId,borrowed}` |
+| `navigate` | `url`, `newTab?`, `active?`, `adopt?`, `group_title?`, `timeout_ms?` | `{success,url,title,tabId,debugger_attached?}` |
+| `find_tab` | `url?`, `active?`, `borrow?`, `tabId?` | `{success,url,title,tabId,borrowed}` |
+| `list_browser_tabs` | — | `{success,tabs:[{tabId,url,title,active,windowId}]}` |
+| `attach_tab` | `tabId` | `{success,tabId,url,title,borrowed}` |
 | `list_tabs` | — | `{success,tabs:[{tabId,url,title,active,groupTitle,borrowed}]}` |
-| `close_tab` | — | `{success,closed}` |
+| `close_tab` | `force?` | `{success,closed,tabId}` |
 | `close_session` | — | `{success,closed}` |
 | `snapshot` | `format?` (`json`/`aria`), `max_chars?`, `interactive?`, `ref?` | `{url,title,tree_text?,tree?,ref_policy,truncated?}` |
 | `read_page` | `max_chars?` | `{url,title,text}` |
@@ -165,6 +168,17 @@ Network capture:
 ... -d '{"action":"network","args":{"cmd":"stop"},"session":"demo"}'
 ```
 
+## Session persistence
+
+Session state is written to `~/.kai-webbridge/sessions.json` (mode 0600) on every
+state change, with a short debounce and atomic rename. On daemon startup the file is
+loaded before the HTTP server listens, so `current`/`owned` tab IDs survive a daemon
+restart. If the browser also restarted, tab IDs are stale; the extension's tab-group
+binding is the fallback, and `list_tabs` reconciles the session.
+
+Only names, tab IDs, borrowed state, and timestamps are stored. Page content, URLs, and
+titles are not persisted.
+
 ## Session enrichment
 
 Before forwarding, the daemon adds these fields to `args`:
@@ -175,7 +189,8 @@ Before forwarding, the daemon adds these fields to `args`:
 | `_tabId` | The session's current tab, when known. |
 | `_ownedTabIds` | Tabs this session created, used by close/list. |
 
-These are internal. Agents should not send them.
+These are internal. The daemon strips any `_`-prefixed keys supplied by an agent before
+adding its own, so callers cannot target arbitrary tabs.
 
 ## WebSocket (daemon ↔ extension)
 

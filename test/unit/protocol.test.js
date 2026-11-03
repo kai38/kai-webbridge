@@ -35,6 +35,14 @@ test("normalizeCommand rejects malformed bodies", () => {
   }
 });
 
+test("normalizeCommand strips internal routing fields", () => {
+  const command = normalizeCommand({
+    action: "snapshot",
+    args: { _tabId: 42, _session: "spoof", max_chars: 1000 },
+  });
+  assert.deepEqual(command.args, { max_chars: 1000 });
+});
+
 test("envelopes have stable shapes", () => {
   assert.deepEqual(okPayload(undefined), { ok: true, data: null });
   assert.deepEqual(okPayload({ a: 1 }), { ok: true, data: { a: 1 } });

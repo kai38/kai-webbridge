@@ -264,3 +264,57 @@ test("websocket connections require the token when one is configured", async (t)
   assert.equal(ack.type, "hello_ack");
   allowed.close();
 });
+
+test("borrowed tabs are protected from implicit navigation and closing", async (t) => {
+  const { daemon, base } = await startDaemon();
+  t.after(() => daemon.stop());
+
+  const ws = await wsConnect(base);
+  await hello(ws);
+  const calls = [];
+  ws.on("message", (raw) => {
+    const message = JSON.parse(raw.toString());
+    if (message.type !== "tool_call") return;
+    calls.push(message.payload.name);
+    let data;
+    if (message.payload.name === "find_tab") data = { success: true, url: "https://example.com/", title: "Example", tabId: 42, borrowed: true };
+    else if (message.payload.name === "navigate") data = { success: true, url: "https://example.com/next", tabId: 43 };
+    else data = { success: true, closed: true };
+    ws.send(JSON.stringify({ type: "tool_result", requestId: message.requestId, payload: { data } }));
+  });
+
+  const borrowed = await fetch(`${base}/command`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action: "find_tab", args: { url: "https://example.com", borrow: true }, session: "borrow" }),
+  }).then((r) => r.json());
+  assert.equal(borrowed.ok, true);
+  assert.equal(borrowed.data.borrowed, true);
+  assert.equal(daemon.sessions.get("borrow").borrowed, true);
+
+  const close = await fetch(`${base}/command`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action: "close_tab", args: {}, session: "borrow" }),
+  }).then((r) => r.json());
+  assert.equal(close.ok, false);
+  assert.equal(close.error.code, "tab_not_owned");
+  assert.equal(calls.includes("close_tab"), false);
+
+  const nav = await fetch(`${base}/command`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action: "navigate", args: { url: "https://example.com/next" }, session: "borrow" }),
+  }).then((r) => r.json());
+  assert.equal(nav.ok, false);
+  assert.equal(nav.error.code, "tab_not_owned");
+  assert.equal(calls.includes("navigate"), false);
+
+  const forced = await fetch(`${base}/command`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action: "close_tab", args: { force: true }, session: "borrow" }),
+  }).then((r) => r.json());
+  assert.equal(forced.ok, true);
+  assert.equal(daemon.sessions.get("borrow").borrowed, false);
+});

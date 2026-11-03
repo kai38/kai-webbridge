@@ -58,6 +58,7 @@ The daemon is deliberately thin. It never parses HTML and never decides what to 
 | `src/config.js` | Config file + env + CLI merge, validation, paths. |
 | `src/protocol.js` | Command validation, envelopes, error types. |
 | `src/sessions.js` | Session → owned tabs / current tab / borrowed state. |
+| `src/session-store.js` | Atomic, debounced persistence of session state to `sessions.json`. |
 | `src/hub.js` | Single-extension WebSocket hub, request correlation, heartbeats, 4409 guard. |
 | `src/http.js` | `/command`, `/status`, `/health`, Origin guard, auth, WebSocket upgrade. |
 | `src/outputs.js` | Decodes screenshot/PDF base64 and writes files. |
@@ -70,8 +71,10 @@ Key decisions:
   persistent socket is only needed between the daemon and the extension.
 - **One extension slot.** Two browsers driving one daemon would interleave tabs and
   sessions unpredictably. The second connection gets close code `4409`.
-- **Session state in the daemon, tab-group bindings in the extension.** If the daemon
-  restarts, the extension can still enumerate a session's tabs via the group binding.
+- **Session state in the daemon, tab-group bindings in the extension.** Session state is
+  persisted before listen and after changes, so a daemon restart keeps tabs. If the
+  browser also restarts, tab IDs are stale and the extension's group binding plus
+  `list_tabs` reconcile the session.
 - **Files, not base64, for screenshots and PDFs.** The model gets a path; binary data
   stays out of the context window.
 - **No logging of page content or arguments.** Logs contain session, tool, duration,
@@ -90,7 +93,9 @@ The extension is a module service worker with no build step. `background.js` sta
 | `lib/snapshot.js` | Accessibility tree fetch, ref assignment, ARIA/JSON renderers. |
 | `lib/tabs.js` | Session tab groups, persistence, lookup, close. |
 | `lib/network.js` | Per-tab `Network.*` capture buffer and body retrieval. |
-| `lib/tools.js` | The 19 tool implementations. |
+| `lib/tools.js` | The 21 tool implementations. |
+| `lib/browser-tabs.js` | URL matching/ranking for borrowing already-open tabs. |
+| `popup.html/js/css` | Connection status popup (browser, versions, server, reconnect/options). |
 | `options.html/js` | Server URL, token, auto-connect, live status. |
 
 ### CDP session model
@@ -144,6 +149,11 @@ picks a stable color, and stores `session → groupId` in `chrome.storage.local`
 daemon restart does not lose the group. `list_tabs` and `find_tab` consider both the
 daemon-supplied owned tabs and the group's tabs, so the session remains usable.
 
+Borrowed tabs are different: `find_tab`/`attach_tab` attach to a page the user already
+has open without creating or moving a group tab. They are not owned by the session and
+are not closed by `close_session`; `close_tab` needs `force:true` and `navigate` needs
+`newTab:true` or `adopt:true`.
+
 ## Output files
 
 - Screenshots: `<outputDir>/kai-webbridge-screenshots/screenshot_<timestamp>.<ext>`
@@ -161,7 +171,8 @@ Old files are not cleaned up automatically.
 | Tool exceeds daemon timeout | `timeout` (default 120 s). |
 | Chrome debugger detaches | One automatic reattach and retry. |
 | JS dialog opens | Command fails with a dialog message; `dialog` then `accept`/`dismiss`. |
-| Tab closed | Extension emits `tab_closed`; daemon prunes it from sessions. |
+| Tab closed | Extension emits `tab_closed`; daemon prunes it from sessions and persists. |
+| Borrowed tab mutated | Daemon rejects implicit `close_tab`/`navigate` with `tab_not_owned`. |
 | Ref stale | Clear error telling the agent to snapshot again. |
 
 ## Limitations

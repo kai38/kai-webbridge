@@ -1,6 +1,7 @@
 const BINDINGS_KEY = "sessionGroups";
 const COLORS = ["blue", "cyan", "green", "orange", "pink", "purple", "red", "yellow"];
 export const TAB_GROUP_ID_NONE = -1;
+export { hostOf, hostsMatch } from "./browser-tabs.js";
 
 function colorFor(session) {
   let hash = 0;
@@ -110,17 +111,4 @@ export async function closeSessionTabs(session, ownedTabIds = []) {
 export async function activeTab() {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   return tab ?? null;
-}
-
-export function hostOf(url) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
-export function hostsMatch(candidate, wanted) {
-  if (!candidate || !wanted) return false;
-  return candidate === wanted || candidate.endsWith(`.${wanted}`) || wanted.endsWith(`.${candidate}`);
 }

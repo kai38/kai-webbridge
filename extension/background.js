@@ -36,10 +36,6 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   connection.send({ type: "event", event: "tab_closed", payload: { tabId } });
 });
 
-chrome.action.onClicked.addListener(() => {
-  void chrome.runtime.openOptionsPage();
-});
-
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message || typeof message.type !== "string" || !message.type.startsWith("kai-")) return false;
   (async () => {

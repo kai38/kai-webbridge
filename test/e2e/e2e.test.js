@@ -174,6 +174,31 @@ test("end-to-end: real Chrome, extension, snapshot, click, fill, screenshot, PDF
   const found = await ok("find_tab", { url: "127.0.0.1" });
   assert.equal(found.tabId, navigated.tabId);
 
+  const browserTabs = await ok("list_browser_tabs", {});
+  assert.ok(browserTabs.tabs.some((tab) => tab.tabId === navigated.tabId));
+
+  const borrowed = await ok("find_tab", { url: "127.0.0.1", borrow: true }, "borrow");
+  assert.equal(borrowed.borrowed, true);
+  assert.equal(borrowed.tabId, navigated.tabId);
+
+  const borrowedSnapshot = await ok("snapshot", { format: "aria" }, "borrow");
+  assert.match(borrowedSnapshot.tree_text, /button "Greet"/);
+
+  const blockedClose = await command("close_tab", {}, "borrow");
+  assert.equal(blockedClose.ok, false);
+  assert.equal(blockedClose.error.code, "tab_not_owned");
+
+  const blockedNavigate = await command("navigate", { url: `http://127.0.0.1:${pagePort}/second.html` }, "borrow");
+  assert.equal(blockedNavigate.ok, false);
+  assert.equal(blockedNavigate.error.code, "tab_not_owned");
+
+  const released = await ok("close_session", {}, "borrow");
+  assert.equal(released.closed, 0);
+
+  const attached = await ok("attach_tab", { tabId: navigated.tabId }, "attach");
+  assert.equal(attached.borrowed, true);
+  await ok("close_session", {}, "attach");
+
   const snapshot = await ok("snapshot", { format: "aria" });
   assert.match(snapshot.tree_text, /button "Greet"/);
   assert.match(snapshot.tree_text, /textbox "Name"/);

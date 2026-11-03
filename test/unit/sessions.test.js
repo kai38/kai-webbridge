@@ -25,8 +25,8 @@ test("observe tracks navigate, borrowed tabs, and list reconciliation", () => {
 
   store.observe("t", "list_tabs", { tabs: [{ tabId: 2 }, { tabId: 3 }] });
   assert.deepEqual([...store.get("t").owned], [2, 3]);
-  assert.equal(store.get("t").current, 99, "a borrowed tab stays current");
-  assert.equal(store.get("t").borrowed, true);
+  assert.equal(store.get("t").current, 2, "a missing borrowed tab is dropped and an owned tab is promoted");
+  assert.equal(store.get("t").borrowed, false);
 
   store.observe("t", "find_tab", { tabId: 2 });
   assert.equal(store.get("t").current, 2);

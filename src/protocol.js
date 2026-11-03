@@ -24,8 +24,11 @@ export function normalizeCommand(body) {
       'action must be a tool name such as "navigate" or "snapshot" (lowercase letters, digits, underscore)',
     );
   }
-  const args = body.args === undefined ? {} : body.args;
-  if (!isPlainObject(args)) throw badRequest("args must be a JSON object");
+  const rawArgs = body.args === undefined ? {} : body.args;
+  if (!isPlainObject(rawArgs)) throw badRequest("args must be a JSON object");
+  // Internal routing fields are injected by the daemon. Never accept them from
+  // an agent, otherwise it could target arbitrary tabs.
+  const args = Object.fromEntries(Object.entries(rawArgs).filter(([key]) => !key.startsWith("_")));
   let session = body.session === undefined || body.session === null ? "default" : String(body.session).trim();
   if (!session) session = "default";
   if (session.length > SESSION_MAX || /[\u0000-\u001f\u007f]/.test(session)) {

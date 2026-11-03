@@ -60,6 +60,8 @@ that can read your config file or extension storage.
   path. They inherit your umask; treat them as sensitive.
 - The extension stores the server URL, optional token, client UUID, and tab-group
   bindings in `chrome.storage.local`.
+- The daemon stores session names, tab IDs, borrowed state, and timestamps in
+  `~/.kai-webbridge/sessions.json` with mode `0600`. No page content or URLs are stored.
 
 ### Process and file scope
 

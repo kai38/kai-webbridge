@@ -119,7 +119,10 @@ async function removeRuntimeFiles() {
 async function serve(config, { detached = false } = {}) {
   ensureHome();
   const logger = createLogger(config.logLevel);
-  const daemon = new Daemon(config, { logger });
+  const daemon = new Daemon(config, {
+    logger,
+    sessionFile: path.join(homeDir(), "sessions.json"),
+  });
   await daemon.start();
 
   await fsp.writeFile(pidPath(), `${process.pid}\n`);

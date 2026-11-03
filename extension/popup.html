@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kai WebBridge</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="popup">
+      <header class="header">
+        <img class="logo" src="icons/48.png" alt="" width="28" height="28" />
+        <h1 class="title">Kai WebBridge</h1>
+      </header>
+
+      <main class="content">
+        <section class="card" aria-label="Connection status">
+          <div class="status-row">
+            <span id="status-dot" class="status-dot" data-state="unknown" aria-hidden="true"></span>
+            <span id="status-label" class="status-label" role="status" aria-live="polite">checking…</span>
+          </div>
+
+          <dl class="details">
+            <div class="detail-row">
+              <dt>Browser</dt>
+              <dd id="browser-value">—</dd>
+            </div>
+            <div class="detail-row">
+              <dt>Daemon version</dt>
+              <dd id="daemon-value">—</dd>
+            </div>
+            <div class="detail-row">
+              <dt>Extension version</dt>
+              <dd id="extension-value">—</dd>
+            </div>
+            <div class="detail-row">
+              <dt>WebSocket server</dt>
+              <dd id="server-value" class="mono">—</dd>
+            </div>
+            <div id="error-row" class="detail-row detail-row--error" hidden>
+              <dt>Last error</dt>
+              <dd id="last-error">—</dd>
+            </div>
+          </dl>
+        </section>
+      </main>
+
+      <footer class="actions">
+        <button
+          id="reconnect"
+          class="button button--primary"
+          type="button"
+          aria-label="Reconnect to the Kai WebBridge daemon"
+        >
+          Reconnect
+        </button>
+        <button
+          id="options"
+          class="button button--secondary"
+          type="button"
+          aria-label="Open Kai WebBridge options"
+        >
+          Options
+        </button>
+      </footer>
+    </div>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

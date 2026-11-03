@@ -28,6 +28,9 @@ This data is processed on the user's machine by the Kai WebBridge daemon at
   contain page content.
 - Extension settings (daemon URL, optional token, client ID, and tab-group bindings) are
   stored in Chromium's local extension storage.
+- Session names, tab IDs, borrowed state, and timestamps are stored locally in
+  `~/.kai-webbridge/sessions.json` (mode 0600). URLs, titles, and page content are not
+  stored there.
 - The daemon may read page content to serve a request; it does not retain it beyond the
   request or the output files the user asks for.
 

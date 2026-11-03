@@ -41,22 +41,35 @@ curl -s -X POST http://127.0.0.1:10087/command \
 
 ## Sessions and tab groups
 
-One task = one session = one Chrome tab group.
+One task = one session, with one Chrome tab group for tabs it opens.
 
 - Pick one session name at the start and reuse it for the whole task.
 - Pass `group_title` on the first `navigate` to name the group in the user's language.
 - Tabs opened in the same session join the same group automatically.
 - `close_session` closes the whole group. Only call it when the user asks to close the tabs.
 - The daemon remembers the session's current tab; single-tab tools operate on it.
+- Session state persists in `~/.kai-webbridge/sessions.json`; after a daemon restart, call `list_tabs` to resume.
+- Borrowed tabs (pages the user already had open) are not grouped and are not closed by `close_session`.
+
+## Working with pages the user already has open
+
+When the user says "use the page I have open" or asks about an existing tab:
+
+1. Call `list_browser_tabs` and pick the tab, or call `find_tab` with `url` and `borrow:true`.
+2. The reply has `borrowed:true`; subsequent tools act on that tab.
+3. Do not group, rename, navigate, or close a borrowed tab implicitly. `navigate` needs `newTab:true` or `adopt:true`; `close_tab` needs `force:true`.
+4. `close_session` leaves borrowed tabs open; release them by attaching another tab or closing the session.
 
 ## Tools
 
 | Tool | Args | Returns | Notes |
 |---|---|---|---|
 | `navigate` | `url`, `newTab`, `active`, `group_title` | `{success,url,title,tabId}` | First call opens the tab and creates the group. `http`/`https` only. |
-| `find_tab` | `url`, `active` | `{success,url,title,tabId,borrowed}` | `active:true` borrows the tab the user is viewing. Matching is by host. |
-| `list_tabs` | — | `{success,tabs:[{tabId,url,title,active,groupTitle}]}` | Tabs in this session. |
-| `close_tab` | — | `{success,closed}` | Close the session's current tab. |
+| `find_tab` | `url?`, `active?`, `borrow?`, `tabId?` | `{success,url,title,tabId,borrowed}` | Session tabs first; `active:true` borrows the user's current tab; `borrow:true` searches all open tabs by host; `tabId` attaches an exact tab. |
+| `list_tabs` | — | `{success,tabs:[{tabId,url,title,active,groupTitle,borrowed}]}` | Tabs in this session plus the borrowed current tab. |
+| `list_browser_tabs` | — | `{success,tabs:[{tabId,url,title,active,windowId}]}` | All open http(s) tabs. Read-only. |
+| `attach_tab` | `tabId` | `{success,tabId,url,title,borrowed}` | Attach an exact tab returned by `list_browser_tabs`. |
+| `close_tab` | `force?` | `{success,closed,tabId}` | Closes the current tab. A borrowed tab needs `force:true`. |
 | `close_session` | — | `{success,closed}` | Close the whole group. |
 | `snapshot` | `format` (`json`/`aria`), `max_chars`, `interactive`, `ref` | `{url,title,tree_text}` with `[ref=eN]` | Accessibility tree. Prefer this over CSS selectors. |
 | `read_page` | `max_chars` | `{url,title,text}` | Plain text of the page. |
@@ -103,6 +116,7 @@ Both tools return a path on the machine running the daemon. Read the file with y
 
 - `extension_not_connected` — Chrome/extension side is down. Tell the user; do not retry in a loop.
 - `timeout` — the page is busy, closed, or blocked by a dialog. Check `list_tabs`, then try `dialog`.
+- `tab_not_owned` — the current tab was borrowed. Use `newTab:true`/`adopt:true` before navigating, or `force:true` before closing.
 - `extension_error` — the tool itself failed; the message is actionable (bad selector, expired ref, no tab).
 - "A JavaScript ... dialog is open" — call `dialog` with `accept` or `dismiss`, then retry the action.
 - Unknown tool — the daemon and extension versions disagree; tell the user to reload the extension.

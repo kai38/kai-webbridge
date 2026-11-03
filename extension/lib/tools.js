@@ -1,8 +1,11 @@
+import { chooseBestTab, hostsMatch, isBorrowableUrl } from "./browser-tabs.js";
 import * as cdp from "./cdp.js";
 import { network } from "./network.js";
 import { capture } from "./snapshot.js";
 import * as sessionTabs from "./tabs.js";
 import { clamp, sleep, truncate } from "./util.js";
+
+const BROWSER_TAB_LIMIT = 200;
 
 const PAPER_SIZES = {
   letter: [8.5, 11],
@@ -12,16 +15,14 @@ const PAPER_SIZES = {
   tabloid: [11, 17],
 };
 
-async function resolveTab(args, { activeFallback = true } = {}) {
+async function resolveTab(args) {
   if (Number.isInteger(args._tabId)) {
     const tab = await chrome.tabs.get(args._tabId).catch(() => null);
     if (tab) return tab;
   }
-  if (activeFallback) {
-    const tab = await sessionTabs.activeTab();
-    if (tab) return tab;
-  }
-  throw new Error("no tab available; call navigate or find_tab first");
+  throw new Error(
+    "no current tab for this session. Call list_tabs to resume one of its tabs, or find_tab/navigate to select a page.",
+  );
 }
 
 function sessionOf(args) {
@@ -99,22 +100,100 @@ async function navigate(args) {
   };
 }
 
+function tabResult(tab, borrowed) {
+  return {
+    success: true,
+    url: tab.url ?? tab.pendingUrl ?? "",
+    title: tab.title ?? "",
+    tabId: tab.id,
+    borrowed,
+  };
+}
+
 async function findTab(args) {
   const session = sessionOf(args);
   if (args.active === true) {
     const tab = await sessionTabs.activeTab();
     if (!tab) throw new Error("find_tab: no active tab in the current window");
-    return { success: true, url: tab.url, title: tab.title, tabId: tab.id, borrowed: true };
+    if (!isBorrowableUrl(tab.url)) {
+      throw new Error("find_tab: the active tab is not an http:// or https:// page. Switch to a web page or use list_browser_tabs.");
+    }
+    return tabResult(tab, true);
+  }
+  if (args.tabId !== undefined && args.tabId !== null && !Number.isInteger(args.tabId)) {
+    throw new Error("find_tab: tabId must be an integer. Call list_browser_tabs to find one.");
+  }
+  if (Number.isInteger(args.tabId)) {
+    const tab = await chrome.tabs.get(args.tabId).catch(() => null);
+    if (!tab) {
+      throw new Error(`find_tab: tab ${args.tabId} does not exist. Call list_browser_tabs to list open tabs.`);
+    }
+    if (!isBorrowableUrl(tab.url)) {
+      throw new Error(
+        `find_tab: tab ${args.tabId} is not an http:// or https:// page. Call list_browser_tabs to pick a web tab.`,
+      );
+    }
+    return tabResult(tab, true);
   }
   const wantedRaw = typeof args.url === "string" ? args.url.trim() : "";
-  if (!wantedRaw) throw new Error("find_tab: url is required");
-  const wanted = sessionTabs.hostOf(wantedRaw) ?? wantedRaw.toLowerCase();
-  const tabs = await sessionTabs.getSessionTabs(session, args._ownedTabIds ?? []);
-  const match = tabs.find((tab) => sessionTabs.hostsMatch(sessionTabs.hostOf(tab.url), wanted));
-  if (!match) {
-    throw new Error(`find_tab: no tab matching "${wantedRaw}" in this session. Use navigate with newTab to open it.`);
+  if (!wantedRaw) {
+    throw new Error(
+      "find_tab: url is required (or pass active:true or tabId). " +
+        "To attach to an open browser tab, pass url with borrow:true, or call list_browser_tabs.",
+    );
   }
-  return { success: true, url: match.url, title: match.title, tabId: match.id, borrowed: false };
+  const tabs = await sessionTabs.getSessionTabs(session, args._ownedTabIds ?? []);
+  const match = tabs.find((tab) => hostsMatch(tab.url, wantedRaw));
+  if (match) return tabResult(match, false);
+  if (args.borrow === true) {
+    const active = await sessionTabs.activeTab();
+    const allTabs = await chrome.tabs.query({});
+    const best = chooseBestTab(allTabs, {
+      url: wantedRaw,
+      activeTabId: active?.id ?? null,
+      preferActive: true,
+    });
+    if (best) return tabResult(best, true);
+    throw new Error(
+      `find_tab: no tab matching "${wantedRaw}" in this session or among open browser tabs (borrow:true). ` +
+        "Call list_browser_tabs to inspect open tabs, or navigate with newTab to open it.",
+    );
+  }
+  throw new Error(
+    `find_tab: no tab matching "${wantedRaw}" in this session. ` +
+      "Pass borrow:true to search all open browser tabs, or call list_browser_tabs to list them.",
+  );
+}
+
+async function attachTab(args) {
+  if (!Number.isInteger(args.tabId)) {
+    throw new Error("attach_tab: tabId is required. Call list_browser_tabs to find one.");
+  }
+  const tab = await chrome.tabs.get(args.tabId).catch(() => null);
+  if (!tab) {
+    throw new Error(`attach_tab: tab ${args.tabId} does not exist. Call list_browser_tabs to list open tabs.`);
+  }
+  if (!isBorrowableUrl(tab.url)) {
+    throw new Error(
+      `attach_tab: tab ${args.tabId} is not an http:// or https:// page. Call list_browser_tabs to pick a web tab.`,
+    );
+  }
+  return tabResult(tab, true);
+}
+
+async function listBrowserTabs() {
+  const tabs = await chrome.tabs.query({});
+  const items = tabs
+    .filter((tab) => tab && Number.isInteger(tab.id) && isBorrowableUrl(tab.url))
+    .slice(0, BROWSER_TAB_LIMIT)
+    .map((tab) => ({
+      tabId: tab.id,
+      url: tab.url ?? tab.pendingUrl ?? "",
+      title: tab.title ?? "",
+      active: Boolean(tab.active),
+      windowId: tab.windowId,
+    }));
+  return { success: true, tabs: items };
 }
 
 async function listTabs(args) {
@@ -131,13 +210,26 @@ async function listTabs(args) {
       borrowed: false,
     });
   }
+  if (Number.isInteger(args._tabId) && !items.some((item) => item.tabId === args._tabId)) {
+    const current = await chrome.tabs.get(args._tabId).catch(() => null);
+    if (current) {
+      items.push({
+        tabId: current.id,
+        url: current.url ?? "",
+        title: current.title ?? "",
+        active: Boolean(current.active),
+        groupTitle: await sessionTabs.groupTitleOf(current),
+        borrowed: true,
+      });
+    }
+  }
   return { success: true, tabs: items };
 }
 
 async function closeTab(args) {
   const tab = await resolveTab(args);
   await chrome.tabs.remove(tab.id);
-  return { success: true, closed: true };
+  return { success: true, closed: true, tabId: tab.id };
 }
 
 async function closeSession(args) {
@@ -367,7 +459,9 @@ async function scroll(args) {
 const tools = {
   navigate,
   find_tab: findTab,
+  attach_tab: attachTab,
   list_tabs: listTabs,
+  list_browser_tabs: listBrowserTabs,
   close_tab: closeTab,
   close_session: closeSession,
   snapshot,
