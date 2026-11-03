@@ -21,12 +21,22 @@ Chrome extension (MV3)  ──  chrome.debugger → CDP → your real tab
 
 Requirements: **Node.js 20+**, **Chrome/Chromium 120+**.
 
-### From GitHub (recommended)
+### One command (recommended)
 
 ```bash
-npm install -g github:kai38/kai-webbridge
+npx -y https://github.com/kai38/kai-webbridge/releases/latest/download/kai-webbridge.tgz setup
+```
+
+`npx` downloads the release tarball, runs the setup, and leaves the daemon and extension behind. No global install.
+
+### Global install
+
+```bash
+npm install -g https://github.com/kai38/kai-webbridge/releases/latest/download/kai-webbridge.tgz
 kai-webbridge setup
 ```
+
+Use this if you want `kai-webbridge` on your PATH. Update later by repeating the install command and running `kai-webbridge setup`.
 
 ### From a checkout
 
@@ -37,7 +47,7 @@ npm install
 node bin/kai-webbridge.js setup
 ```
 
-The package is not published to npm yet; both paths above install the same code.
+The package is not published to npm yet; the release tarball is the supported install path.
 
 ### What `setup` does
 
